@@ -2,8 +2,23 @@ package ChessEngine.board;
 
 import ChessEngine.pieces.Piece;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public abstract class Tile {
-    int tileCoordinate;
+    protected final int tileCoordinate;
+
+    private static final Map<Integer, EmptyTile> EMPTY_TILES = createAllPossibleEmptyTiles();
+
+    private static Map<Integer, EmptyTile> createAllPossibleEmptyTiles() {
+        final Map<Integer, EmptyTile> emptyTileMap = new HashMap<>();
+
+        for (int i = 0; i < 64; i++){
+            emptyTileMap.put(i, new EmptyTile(i));
+        }
+
+        return emptyTileMap;
+    }
 
     Tile(int tileCoordinate) {
         this.tileCoordinate = tileCoordinate;
@@ -14,8 +29,8 @@ public abstract class Tile {
     public abstract Piece getPiece();
 
     public static final class EmptyTile extends Tile{ //Subclass for an empty tile
-        EmptyTile(int coordinate) {
-            super(coordinate);
+        EmptyTile(final int tileCoordinate) {
+            super(tileCoordinate);
         }
 
         @Override
@@ -30,10 +45,10 @@ public abstract class Tile {
     }
 
     public static final class OccupiedTile extends Tile{ //Subclass for an occupied tile
-        Piece occupyingPiece;
+        private final Piece occupyingPiece;
 
-        OccupiedTile(int coordinate, Piece occupyingPiece) {
-            super(coordinate);
+        OccupiedTile(final int tileCoordinate, Piece occupyingPiece) {
+            super(tileCoordinate);
             this.occupyingPiece = occupyingPiece;
         }
 
