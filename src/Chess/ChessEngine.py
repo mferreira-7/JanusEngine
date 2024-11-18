@@ -43,17 +43,77 @@ class GameState:
             print("There are no moves to undo")
 
     """
-    All moves (including checks)
+    All moves (including check avoidance)
     """
 
     def getValidMoves(self):
+        return self.getAllPossibleMoves() #for now...
+
+    """
+    All moves (excluding check avoidance)
+    """
+
+    def getAllPossibleMoves(self): #This helper method is used to collate all moves so getValidMoves can pick which ones are valid at any point
+        moves = []
+        for row in range(len(self.board)): #num of rows
+            for col in range(len(self.board[row])): #num of column in given row
+                turn = self.board[row][col][-1]
+                if (turn == "W" and self.whiteToMove) and (turn == "B" and not self.whiteToMove):
+                    piece = self.board[row][col][0]
+                    if piece == "p":
+                        self.getPawnMoves(row, col, moves)
+                    elif piece == "r":
+                        self.getRookMoves(row, col, moves)
+                    elif piece == "n":
+                        self.getKnightMoves(row, col, moves)
+                    elif piece == "b":
+                        self.getBishopMoves(row, col, moves)
+                    elif piece == "q":
+                        self.getQueenMoves(row, col, moves)
+                    elif piece == "k":
+                        self.getKingMoves(row, col, moves)
+        return moves
+
+    """
+    get all possible moves for pawn located at row, col and add them to the list
+    """
+
+    def getPawnMoves(self, row, col, moves):
         pass
 
     """
-    All moves (excluding checks)
+    get all possible moves for rook located at row, col and add them to the list
     """
 
-    def getAllPossibleMoves(self):
+    def getRookMoves(self, row, col, moves):
+        pass
+
+    """
+    get all possible moves for knight located at row, col and add them to the list
+    """
+
+    def getKnightMoves(self, row, col, moves):
+        pass
+
+    """
+    get all possible moves for bishop located at row, col and add them to the list
+    """
+
+    def getBishopMoves(self, row, col, moves):
+        pass
+
+    """
+    get all possible moves for queen located at row, col and add them to the list
+    """
+
+    def getQueenMoves(self, row, col, moves):
+        pass
+
+    """
+    get all possible moves for king located at row, col and add them to the list
+    """
+
+    def getKingMoves(self, row, col, moves):
         pass
 
 class Move:
@@ -71,6 +131,15 @@ class Move:
         self.endCol = endSq[1]
         self.pieceMoved = board[self.startRow][self.startCol]
         self.pieceCaptured = board[self.endRow][self.endCol] #will be -- if no piece is captured
+        self.moveID = self.startRow * 1000 + self.startCol * 100 + self.endRow * 10 + self.endCol #used to match Move objects
+
+    """
+    Overriding the equals method
+    """
+
+    def __eq__(self, other):
+        if isinstance(other, Move):
+            return self.moveID == other.moveID
 
     """
     Helpers to make move notation more readable
