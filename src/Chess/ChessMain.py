@@ -34,12 +34,30 @@ def main():
     clock = pg.time.Clock()
     screen.fill(pg.Color('white'))
     gameState = ChessEngine.GameState()
-    loadImages()  #only onces
+    loadImages()  #only once
     running = True
+    sqSelected = () #tracks the last click of the user (row, col)
+    playerClicks = [] #tracks a pair of player clicks [(6,4), (4,4)]
     while running:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
+            elif event.type == pg.MOUSEBUTTONDOWN:
+                location = pg.mouse.get_pos() #(x, y) position of mouse
+                col = location[0] // SQ_SIZE
+                row = location[1] // SQ_SIZE
+                if sqSelected == (row, col): #user clicked the same sq twice
+                    sqSelected = () #deselect
+                    playerClicks = [] #clear clicks
+                else:
+                    sqSelected = (row, col)
+                    playerClicks.append(sqSelected)
+                if len(playerClicks) == 2: #2nd click
+                    move = ChessEngine.Move(playerClicks[0], playerClicks[1], gameState.board)
+                    print(move.getChessNotation())
+                    gameState.makeMove(move)
+                    sqSelected = () #reset clicks
+                    playerClicks = []
         drawGameState(screen, gameState)
         clock.tick(MAX_FPS)
         pg.display.flip()
