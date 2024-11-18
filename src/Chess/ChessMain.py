@@ -40,9 +40,9 @@ def main():
     playerClicks = [] #tracks a pair of player clicks [(6,4), (4,4)]
     while running:
         for event in pg.event.get():
-            if event.type == pg.QUIT:
+            if event.type == pg.QUIT: #quit handler
                 running = False
-            elif event.type == pg.MOUSEBUTTONDOWN:
+            elif event.type == pg.MOUSEBUTTONDOWN: #mouse handler
                 location = pg.mouse.get_pos() #(x, y) position of mouse
                 col = location[0] // SQ_SIZE
                 row = location[1] // SQ_SIZE
@@ -58,6 +58,9 @@ def main():
                     gameState.makeMove(move)
                     sqSelected = () #reset clicks
                     playerClicks = []
+            elif event.type == pg.KEYDOWN: #key handler
+                if event.key == pg.K_z:
+                    gameState.undoMove()
         drawGameState(screen, gameState)
         clock.tick(MAX_FPS)
         pg.display.flip()

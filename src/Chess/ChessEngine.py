@@ -25,6 +25,14 @@ class GameState:
         self.moveLog.append(move) #log the moves for display and more
         self.whiteToMove = not self.whiteToMove #swap whose turn it is
 
+    def undoMove(self):
+        if len(self.moveLog) != 0: #make sure there is a move to be undone
+            move = self.moveLog.pop() #get the most recent move
+            self.board[move.startRow][move.startCol] = move.pieceMoved #put the moved piece back to its start position
+            self.board[move.endRow][move.endCol] = move.pieceCaptured #fill in the position it was moved to
+            self.whiteToMove = not self.whiteToMove #swap whose turn it is
+            print(Move.getChessNotation(move) + " was undone")
+
 class Move:
     ranksToRows = {"1":7, "2":6, "3":5, "4":4,
                    "5":3, "6":2, "7":1, "8":0}
@@ -43,6 +51,7 @@ class Move:
 
     def getChessNotation(self):
         return self.getRankAndFile(self.startRow, self.startCol) + " -> " + self.getRankAndFile(self.endRow, self.endCol)
+
     def getRankAndFile(self, row, col):
         return self.colsToFiles[col] + self.rowsToRanks[row] #(5,5) -> F3
 
