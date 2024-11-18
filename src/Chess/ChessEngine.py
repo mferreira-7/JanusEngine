@@ -15,6 +15,8 @@ class GameState:
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["pW", "pW", "pW", "pW", "pW", "pW", "pW", "pW"],
             ["rW", "nW", "bW", "qW", "kW", "bW", "nW", "rW"]]
+        self.moveFunctions = {"p":self.getPawnMoves, "r":self.getRookMoves, "n":self.getKnightMoves,
+                              "b":self.getBishopMoves, "q":self.getQueenMoves, "k":self.getKingMoves}
         self.whiteToMove = True
         self.moveLog = []
 
@@ -58,20 +60,9 @@ class GameState:
         for row in range(len(self.board)): #num of rows
             for col in range(len(self.board[row])): #num of column in given row
                 turn = self.board[row][col][-1]
-                if (turn == "W" and self.whiteToMove) and (turn == "B" and not self.whiteToMove):
+                if (turn == "W" and self.whiteToMove) or (turn == "B" and not self.whiteToMove):
                     piece = self.board[row][col][0]
-                    if piece == "p":
-                        self.getPawnMoves(row, col, moves)
-                    elif piece == "r":
-                        self.getRookMoves(row, col, moves)
-                    elif piece == "n":
-                        self.getKnightMoves(row, col, moves)
-                    elif piece == "b":
-                        self.getBishopMoves(row, col, moves)
-                    elif piece == "q":
-                        self.getQueenMoves(row, col, moves)
-                    elif piece == "k":
-                        self.getKingMoves(row, col, moves)
+                    self.moveFunctions[piece](row, col, moves) #calls the appropriate move function using the piece char
         return moves
 
     """
@@ -79,7 +70,19 @@ class GameState:
     """
 
     def getPawnMoves(self, row, col, moves):
-        pass
+        if self.whiteToMove: #white pawn to move
+            if self.board[row-1][col] == "--": #checking one square ahead
+                moves.append(Move((row, col), (row-1, col), self.board))
+                if row == 6 and self.board[row-2][col] == "--": #checking two squares ahead (only if the first square is empty)
+                    moves.append(Move((row, col), (row-2, col), self.board))
+            if col-1 >= 0: #captures to the left diagonal
+                if self.board[row-1][col-1][-1] == "B":
+                    moves.append(Move((row, col), (row-1, col-1), self.board))
+            if col+1 <= 7: #captures to the right diagonal
+                if self.board[row-1][col+1][-1] == "B":
+                    moves.append(Move((row, col), (row-1, col+1), self.board))
+        else: #black pawn to move
+            pass
 
     """
     get all possible moves for rook located at row, col and add them to the list
