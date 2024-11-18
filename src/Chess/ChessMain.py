@@ -15,18 +15,14 @@ IMAGES = {}
 Initialising the global dictionary to hold images, this will benefit performance
 """
 
-
 def loadImages():
     pieces = ["rB", "nB", "bB", "qB", "kB", "pB", "pW", "rW", "nW", "bW", "qW", "kW"]
     for piece in pieces:
-        IMAGES[piece] = pg.transform.scale(pg.image.load("images/" + piece + ".png"),
-                                           (SQ_SIZE, SQ_SIZE))  #IMAGES["pB"] will return the black pawn image
-
+        IMAGES[piece] = pg.transform.scale(pg.image.load("images/" + piece + ".png"),(SQ_SIZE, SQ_SIZE))  #IMAGES["pB"] will return the black pawn image
 
 """
 main function for handling user input and updating the graphics
 """
-
 
 def main():
     pg.init()
@@ -65,21 +61,17 @@ def main():
         clock.tick(MAX_FPS)
         pg.display.flip()
 
-
 """
 Function to handle all the graphics of this program
 """
-
 
 def drawGameState(screen, gameState):
     drawBoard(screen)  #draw squares on the board
     drawPieces(screen, gameState.board)  #draw pieces on the board
 
-
 """
 Draw the squares
 """
-
 
 def drawBoard(screen):
     colors = [pg.Color("white"), pg.Color("grey")]
@@ -88,11 +80,9 @@ def drawBoard(screen):
             color = colors[((row + column) % 2)]
             pg.draw.rect(screen, color, pg.Rect(column * SQ_SIZE, row * SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
-
 """
 Draw the pieces on the board using the current GameState.board
 """
-
 
 def drawPieces(screen, board):
     for row in range(DIMENSION):
@@ -100,7 +90,6 @@ def drawPieces(screen, board):
             piece = board[row][column]
             if piece != "--":
                 screen.blit(IMAGES[piece], pg.Rect(column * SQ_SIZE, row * SQ_SIZE, SQ_SIZE, SQ_SIZE))
-
 
 if __name__ == '__main__':
     main()

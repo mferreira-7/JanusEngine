@@ -4,7 +4,6 @@ Determines legal moves from the current state
 Logs past moves, so they can be reversed
 """
 
-
 class GameState:
     def __init__(self):
         self.board = [
@@ -19,11 +18,19 @@ class GameState:
         self.whiteToMove = True
         self.moveLog = []
 
+    """
+    Take a move object and apply it to the board
+    """
+
     def makeMove(self, move):
         self.board[move.startRow][move.startCol] = "--" #piece is not at its start position anymore
         self.board[move.endRow][move.endCol] = move.pieceMoved #piece is now at its end position
         self.moveLog.append(move) #log the moves for display and more
         self.whiteToMove = not self.whiteToMove #swap whose turn it is
+
+    """
+    Undo the most recent move
+    """
 
     def undoMove(self):
         if len(self.moveLog) != 0: #make sure there is a move to be undone
@@ -32,12 +39,28 @@ class GameState:
             self.board[move.endRow][move.endCol] = move.pieceCaptured #fill in the position it was moved to
             self.whiteToMove = not self.whiteToMove #swap whose turn it is
             print(Move.getChessNotation(move) + " was undone")
+        else:
+            print("There are no moves to undo")
+
+    """
+    All moves (including checks)
+    """
+
+    def getValidMoves(self):
+        pass
+
+    """
+    All moves (excluding checks)
+    """
+
+    def getAllPossibleMoves(self):
+        pass
 
 class Move:
     ranksToRows = {"1":7, "2":6, "3":5, "4":4,
                    "5":3, "6":2, "7":1, "8":0}
     rowsToRanks = {v:k for k,v in ranksToRows.items()}
-
+    #Both used to map rows/cols to ranks/files and vice versa
     filesToCols = {"a":0, "b":1, "c":2, "d":3,
                    "e":4, "f":5, "g":6, "h":7,}
     colsToFiles = {v:k for k,v in filesToCols.items()}
@@ -49,9 +72,12 @@ class Move:
         self.pieceMoved = board[self.startRow][self.startCol]
         self.pieceCaptured = board[self.endRow][self.endCol] #will be -- if no piece is captured
 
+    """
+    Helpers to make move notation more readable
+    """
+
     def getChessNotation(self):
         return self.getRankAndFile(self.startRow, self.startCol) + " -> " + self.getRankAndFile(self.endRow, self.endCol)
 
     def getRankAndFile(self, row, col):
         return self.colsToFiles[col] + self.rowsToRanks[row] #(5,5) -> F3
-
