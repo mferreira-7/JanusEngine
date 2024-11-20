@@ -140,9 +140,42 @@ class GameState:
 
     def getKingMoves(self, row, col, moves):
         if self.whiteToMove:  # white king to move
-            pass
+            if self.board[row - 1][col][-1] == "-" or self.board[row - 1][col][-1] == "B":  # checking one square ahead
+                moves.append(Move((row, col), (row - 1, col), self.board))
+            if self.board[row - 1][col + 1][-1] == "-" or self.board[row - 1][col + 1][-1] == "B":  # checking one square to the right diagonal forwards
+                moves.append(Move((row, col), (row - 1, col + 1), self.board))
+            if self.board[row][col + 1][-1] == "-" or self.board[row][col + 1][-1] == "B":  # checking one square to the right
+                moves.append(Move((row, col), (row, col + 1), self.board))
+            if self.board[row - 1][col - 1][-1] == "-" or self.board[row - 1][col - 1][-1] == "B":  # checking one square to the left diagonal forwards
+                moves.append(Move((row, col), (row - 1, col - 1), self.board))
+            if self.board[row][col - 1][-1] == "-" or self.board[row][col - 1][-1] == "B":  # checking one square to the left
+                moves.append(Move((row, col), (row, col - 1), self.board))
+            if not row == 7: #checking the piece is not in its starting row
+                if self.board[row + 1][col][-1] == "-" or self.board[row + 1][col][-1] == "B": #checking one square behind
+                    moves.append(Move((row, col), (row + 1, col), self.board))
+                if self.board[row + 1][col + 1][-1] == "-" or self.board[row + 1][col + 1][-1] == "B":  # checking one square to the right diagonal backwards
+                    moves.append(Move((row, col), (row + 1, col + 1), self.board))
+                if self.board[row + 1][col - 1][-1] == "-" or self.board[row + 1][col - 1][-1] == "B":  # checking one square to the left diagonal backwards
+                    moves.append(Move((row, col), (row + 1, col - 1), self.board))
         else: # black king to move
-            pass
+            if self.board[row - 1][col][-1] == "-" or self.board[row - 1][col][-1] == "B":  # checking one square ahead
+                moves.append(Move((row, col), (row - 1, col), self.board))
+            if self.board[row - 1][col + 1][-1] == "-" or self.board[row - 1][col + 1][-1] == "B":  # checking one square to the right diagonal forwards
+                moves.append(Move((row, col), (row - 1, col + 1), self.board))
+            if self.board[row][col + 1][-1] == "-" or self.board[row][col + 1][-1] == "B":  # checking one square to the right
+                moves.append(Move((row, col), (row, col + 1), self.board))
+            if self.board[row - 1][col - 1][-1] == "-" or self.board[row - 1][col - 1][-1] == "B":  # checking one square to the left diagonal forwards
+                moves.append(Move((row, col), (row - 1, col - 1), self.board))
+            if self.board[row][col - 1][-1] == "-" or self.board[row][col - 1][-1] == "B":  # checking one square to the left
+                moves.append(Move((row, col), (row, col - 1), self.board))
+            if not row == 7: #checking the piece is not in its starting row
+                if self.board[row + 1][col][-1] == "-" or self.board[row + 1][col][-1] == "B": #checking one square behind
+                    moves.append(Move((row, col), (row + 1, col), self.board))
+                if self.board[row + 1][col + 1][-1] == "-" or self.board[row + 1][col + 1][-1] == "B":  # checking one square to the right diagonal backwards
+                    moves.append(Move((row, col), (row + 1, col + 1), self.board))
+                if self.board[row + 1][col - 1][-1] == "-" or self.board[row + 1][col - 1][-1] == "B":  # checking one square to the left diagonal backwards
+                    moves.append(Move((row, col), (row + 1, col - 1), self.board))
+
 
 class Move:
     ranksToRows = {"1":7, "2":6, "3":5, "4":4,
