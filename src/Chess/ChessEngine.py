@@ -14,7 +14,8 @@ class GameState:
             ["--", "--", "--", "--", "--", "--", "--", "--"],#could be using a numpy array
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["pW", "pW", "pW", "pW", "pW", "pW", "pW", "pW"],
-            ["rW", "nW", "bW", "qW", "kW", "bW", "nW", "rW"]]
+            ["rW", "nW", "bW", "qW", "kW", "bW", "nW", "rW"]
+        ]
         self.moveFunctions = {"p":self.getPawnMoves, "r":self.getRookMoves, "n":self.getKnightMoves,
                               "b":self.getBishopMoves, "q":self.getQueenMoves, "k":self.getKingMoves}
         self.whiteToMove = True
@@ -73,7 +74,7 @@ class GameState:
         if self.whiteToMove: #white pawn to move
             if self.board[row-1][col] == "--": #checking one square ahead
                 moves.append(Move((row, col), (row-1, col), self.board))
-                if row == 6 and self.board[row-2][col] == "--": #checking two squares ahead (only if the first square is empty)
+                if row == 6 and self.board[row - 2][col] == "--": #checking two squares ahead (only if the first square is empty)
                     moves.append(Move((row, col), (row-2, col), self.board))
             if col-1 >= 0: #captures to the left diagonal
                 if self.board[row-1][col-1][-1] == "B":
@@ -82,42 +83,66 @@ class GameState:
                 if self.board[row-1][col+1][-1] == "B":
                     moves.append(Move((row, col), (row-1, col+1), self.board))
         else: #black pawn to move
-            pass
+            if self.board[row + 1][col] == "--":  # checking one square ahead
+                moves.append(Move((row, col), (row + 1, col), self.board))
+                if row == 1 and self.board[row + 2][col] == "--":  # checking two squares ahead (only if the first square is empty)
+                    moves.append(Move((row, col), (row + 2, col), self.board))
+            if col - 1 >= 0:  # captures to the left diagonal
+                if self.board[row + 1][col - 1][-1] == "W":
+                    moves.append(Move((row, col), (row + 1, col - 1), self.board))
+            if col + 1 <= 7:  # captures to the right diagonal
+                if self.board[row + 1][col + 1][-1] == "W":
+                    moves.append(Move((row, col), (row + 1, col + 1), self.board))
 
     """
     get all possible moves for rook located at row, col and add them to the list
     """
 
     def getRookMoves(self, row, col, moves):
-        pass
+        if self.whiteToMove:  # white rook to move
+            pass
+        else: # black rook to move
+            pass
 
     """
     get all possible moves for knight located at row, col and add them to the list
     """
 
     def getKnightMoves(self, row, col, moves):
-        pass
+        if self.whiteToMove:  # white knight to move
+            pass
+        else: # black knight to move
+            pass
 
     """
     get all possible moves for bishop located at row, col and add them to the list
     """
 
     def getBishopMoves(self, row, col, moves):
-        pass
+        if self.whiteToMove:  # white bishop to move
+            pass
+        else: # black bishop to move
+            pass
 
     """
     get all possible moves for queen located at row, col and add them to the list
     """
 
     def getQueenMoves(self, row, col, moves):
-        pass
+        if self.whiteToMove:  # white queen to move
+            pass
+        else: # black queen to move
+            pass
 
     """
     get all possible moves for king located at row, col and add them to the list
     """
 
     def getKingMoves(self, row, col, moves):
-        pass
+        if self.whiteToMove:  # white king to move
+            pass
+        else: # black king to move
+            pass
 
 class Move:
     ranksToRows = {"1":7, "2":6, "3":5, "4":4,
