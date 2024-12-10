@@ -52,13 +52,14 @@ def main():
                     playerClicks.append(sqSelected)
                 if len(playerClicks) == 2: #2nd click
                     move = ChessEngine.Move(playerClicks[0], playerClicks[1], gameState.board)
-                    if move in validMoves:
-                        gameState.makeMove(move)
-                        moveMade = True
-                        print(move.getChessNotation())
-                        sqSelected = ()  # reset clicks
-                        playerClicks = []
-                    else:
+                    print(move.getChessNotation())
+                    for i in range(len(validMoves)):
+                        if move == validMoves:
+                            gameState.makeMove(validMoves[i])
+                            moveMade = True
+                            sqSelected = ()  # reset clicks
+                            playerClicks = []
+                    if not moveMade:
                         playerClicks = [sqSelected]
             elif event.type == pg.KEYDOWN: #key handler
                 if event.key == pg.K_z:
