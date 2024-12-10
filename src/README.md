@@ -1,4 +1,4 @@
-# Python Chess Engine
+# Python Chess Engine With Self-Play
 
 ## Table of contents
 * [General info](#general-info)
