@@ -56,10 +56,10 @@ def main():
                         gameState.makeMove(move)
                         moveMade = True
                         print(move.getChessNotation())
+                        sqSelected = ()  # reset clicks
+                        playerClicks = []
                     else:
-                        print("Invalid move")
-                    sqSelected = () #reset clicks
-                    playerClicks = []
+                        playerClicks = [sqSelected]
             elif event.type == pg.KEYDOWN: #key handler
                 if event.key == pg.K_z:
                     gameState.undoMove()
