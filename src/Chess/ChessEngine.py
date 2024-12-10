@@ -41,7 +41,7 @@ class GameState:
             self.board[move.startRow][move.startCol] = move.pieceMoved #put the moved piece back to its start position
             self.board[move.endRow][move.endCol] = move.pieceCaptured #fill in the position it was moved to
             self.whiteToMove = not self.whiteToMove #swap whose turn it is
-            print(Move.getChessNotation(move) + " was undone")
+            print("Move was undone")
         else:
             print("There are no moves to undo")
 
@@ -99,82 +99,88 @@ class GameState:
     """
 
     def getRookMoves(self, row, col, moves):
-        if self.whiteToMove:  # white rook to move
-            pass
-        else: # black rook to move
-            pass
+        possibleDirections = ((-1,0), (0,-1), (1,0), (0,1)) #4 directions
+        enemyPieceColor = "B" if self.whiteToMove else "W"
+        for direction in possibleDirections:
+            for i in range(1, 8):
+                endRow = row + direction[0] * i
+                endCol = col + direction[1] * i
+                if 0 <= endRow < 8 and 0 <= endCol < 8: #on the board
+                    endPiece = self.board[endRow][endCol]
+                    if endPiece == "--": #empty square
+                        moves.append(Move((row, col), (endRow, endCol), self.board))
+                    elif endPiece[-1] == enemyPieceColor: #enemy piece on square
+                        moves.append(Move((row, col), (endRow, endCol), self.board))
+                        break
+                    else: #friendly piece on square
+                        break
+                else: #off the board
+                    break
+
+
 
     """
     get all possible moves for knight located at row, col and add them to the list
     """
 
     def getKnightMoves(self, row, col, moves):
-        if self.whiteToMove:  # white knight to move
-            pass
-        else: # black knight to move
-            pass
+        possibleDestinations = ((-2,-1), (-2,1), (-1,-2), (-1,2), (1,-2), (1,2), (2,-1), (2,1)) #8 L shapes destinations
+        friendlyPieceColor = "B" if not self.whiteToMove else "W"
+        for destination in possibleDestinations:
+            endRow = row + destination[0]
+            endCol = col + destination[1]
+            if 0 <= endRow < 8 and 0 <= endCol < 8:
+                endPiece = self.board[endRow][endCol]
+                if endPiece[-1] != friendlyPieceColor: #square not occupied by a friendly piece
+                    moves.append(Move((row, col), (endRow, endCol), self.board))
 
     """
     get all possible moves for bishop located at row, col and add them to the list
     """
 
     def getBishopMoves(self, row, col, moves):
-        if self.whiteToMove:  # white bishop to move
-            pass
-        else: # black bishop to move
-            pass
+        possibleDirections = ((-1,-1), (-1,1), (1,-1), (1,1)) #4 diagonals
+        enemyPieceColor = "B" if self.whiteToMove else "W"
+        for direction in possibleDirections:
+            for i in range(1, 8):
+                endRow = row + direction[0] * i
+                endCol = col + direction[1] * i
+                if 0 <= endRow < 8 and 0 <= endCol < 8: #on the board
+                    endPiece = self.board[endRow][endCol]
+                    if endPiece == "--": #empty square
+                        moves.append(Move((row, col), (endRow, endCol), self.board))
+                    elif endPiece[-1] == enemyPieceColor: #enemy piece on square
+                        moves.append(Move((row, col), (endRow, endCol), self.board))
+                        break
+                    else: #friendly piece on square
+                        break
+                else: #off the board
+                    break
 
     """
     get all possible moves for queen located at row, col and add them to the list
     """
 
-    def getQueenMoves(self, row, col, moves):
-        if self.whiteToMove:  # white queen to move
-            pass
-        else: # black queen to move
-            pass
+    def getQueenMoves(self, row, col, moves): #queen is just rook + bishop (all 8 directions)
+        self.getRookMoves(row, col, moves)
+        self.getBishopMoves(row, col, moves)
+
 
     """
     get all possible moves for king located at row, col and add them to the list
     """
 
     def getKingMoves(self, row, col, moves):
-        if self.whiteToMove:  # white king to move
-            if self.board[row - 1][col][-1] in ["-", "B"]:  # checking one square ahead
-                moves.append(Move((row, col), (row - 1, col), self.board))
-            if self.board[row - 1][col + 1][-1] in ["-", "B"]:  # checking one square to the right diagonal forwards
-                moves.append(Move((row, col), (row - 1, col + 1), self.board))
-            if self.board[row][col + 1][-1] in ["-", "B"]:  # checking one square to the right
-                moves.append(Move((row, col), (row, col + 1), self.board))
-            if self.board[row - 1][col - 1][-1] in ["-", "B"]:  # checking one square to the left diagonal forwards
-                moves.append(Move((row, col), (row - 1, col - 1), self.board))
-            if self.board[row][col - 1][-1] in ["-", "B"]:  # checking one square to the left
-                moves.append(Move((row, col), (row, col - 1), self.board))
-            if not row == 7: #checking the piece is not in its starting row
-                if self.board[row + 1][col][-1] in ["-", "B"]: #checking one square behind
-                    moves.append(Move((row, col), (row + 1, col), self.board))
-                if self.board[row + 1][col + 1][-1] in ["-", "B"]:  # checking one square to the right diagonal backwards
-                    moves.append(Move((row, col), (row + 1, col + 1), self.board))
-                if self.board[row + 1][col - 1][-1] in ["-", "B"]:  # checking one square to the left diagonal backwards
-                    moves.append(Move((row, col), (row + 1, col - 1), self.board))
-        else: # black king to move
-            if self.board[row + 1][col][-1] in ["-", "W"]:  # checking one square ahead
-                moves.append(Move((row, col), (row + 1, col), self.board))
-            if self.board[row + 1][col + 1][-1] in ["-", "W"]:  # checking one square to the right diagonal forwards
-                moves.append(Move((row, col), (row + 1, col + 1), self.board))
-            if self.board[row][col + 1][-1] in ["-", "W"]:  # checking one square to the right
-                moves.append(Move((row, col), (row, col + 1), self.board))
-            if self.board[row + 1][col - 1][-1] in ["-", "W"]:  # checking one square to the left diagonal forwards
-                moves.append(Move((row, col), (row + 1, col - 1), self.board))
-            if self.board[row][col - 1][-1] in ["-", "W"]:  # checking one square to the left
-                moves.append(Move((row, col), (row, col - 1), self.board))
-            if not row == 0: #checking the piece is not in its starting row
-                if self.board[row - 1][col][-1] in ["-", "W"]: #checking one square behind
-                    moves.append(Move((row, col), (row - 1, col), self.board))
-                if self.board[row - 1][col + 1][-1] in ["-", "W"]:  # checking one square to the right diagonal backwards
-                    moves.append(Move((row, col), (row - 1, col + 1), self.board))
-                if self.board[row - 1][col - 1][-1] in ["-", "W"]:  # checking one square to the left diagonal backwards
-                    moves.append(Move((row, col), (row - 1, col - 1), self.board))
+        possibleDirections = ((-1,-1), (-1,0), (-1,1), (0,-1), (0,1), (1,-1), (1,0), (1,1)) #8 directions
+        friendlyPieceColor = "B" if not self.whiteToMove else "W"
+        for i in range(8):
+            endRow = row + possibleDirections[i][0]
+            endCol = col + possibleDirections[i][1]
+            if 0 <= endRow < 8 and 0 <= endCol < 8:
+                endPiece = self.board[endRow][endCol]
+                if endPiece[-1] != friendlyPieceColor: #square not occupied by a friendly piece
+                    moves.append(Move((row, col), (endRow, endCol), self.board))
+
 
 class Move:
     ranksToRows = {"1":7, "2":6, "3":5, "4":4,
@@ -206,7 +212,10 @@ class Move:
     """
 
     def getChessNotation(self):
-        return self.getRankAndFile(self.startRow, self.startCol) + " -> " + self.getRankAndFile(self.endRow, self.endCol)
+        if self.pieceCaptured == "--":
+            return self.getRankAndFile(self.startRow, self.startCol) + " -> " + self.getRankAndFile(self.endRow, self.endCol)
+        else:
+            return self.getRankAndFile(self.startRow, self.startCol) + " -> " + self.getRankAndFile(self.endRow, self.endCol) + " [" + self.pieceMoved + " takes " + self.pieceCaptured + "]"
 
     def getRankAndFile(self, row, col):
         return self.colsToFiles[col] + self.rowsToRanks[row] #(5,5) -> F3
