@@ -103,6 +103,7 @@ class GameState:
             if move.endRow == row and move.endCol == col: #square is under attack
                 return True
         return False
+
     """
     All moves (excluding check avoidance)
     """
@@ -168,8 +169,6 @@ class GameState:
                 else: #off the board
                     break
 
-
-
     """
     get all possible moves for knight located at row, col and add them to the list
     """
@@ -215,7 +214,6 @@ class GameState:
     def getQueenMoves(self, row, col, moves): #queen is just rook + bishop (all 8 directions)
         self.getRookMoves(row, col, moves)
         self.getBishopMoves(row, col, moves)
-
 
     """
     get all possible moves for king located at row, col and add them to the list

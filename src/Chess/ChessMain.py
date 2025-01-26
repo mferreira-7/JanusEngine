@@ -54,7 +54,7 @@ def main():
                     move = ChessEngine.Move(playerClicks[0], playerClicks[1], gameState.board)
                     print(move.getChessNotation())
                     for i in range(len(validMoves)):
-                        if move == validMoves:
+                        if move == validMoves[i]:
                             gameState.makeMove(validMoves[i])
                             moveMade = True
                             sqSelected = ()  # reset clicks
