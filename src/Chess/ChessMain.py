@@ -3,7 +3,7 @@ Handles user input and displays the current game state
 """
 
 import pygame as pg
-import ChessEngine
+import ChessEngine, ChessAi
 
 WIDTH = HEIGHT = 512  #this could be 400
 DIMENSION = 8  #chess board is 8x8
@@ -36,35 +36,51 @@ def main():
     running = True
     sqSelected = () #tracks the last click of the user (row, col)
     playerClicks = [] #tracks a pair of player clicks [(6,4), (4,4)]
+    playerOne = False #if human is playing white, this is true. if ai this is false
+    playerTwo = False #as above but for black
     while running:
+        humanTurn = (gameState.whiteToMove and playerOne) or (not gameState.whiteToMove and playerTwo)
         for event in pg.event.get():
             if event.type == pg.QUIT: #quit handler
                 running = False
             elif event.type == pg.MOUSEBUTTONDOWN: #mouse handler
-                location = pg.mouse.get_pos() #(x, y) position of mouse
-                col = location[0] // SQ_SIZE
-                row = location[1] // SQ_SIZE
-                if sqSelected == (row, col): #user clicked the same sq twice
-                    sqSelected = () #deselect
-                    playerClicks = [] #clear clicks
-                else:
-                    sqSelected = (row, col)
-                    playerClicks.append(sqSelected)
-                if len(playerClicks) == 2: #2nd click
-                    move = ChessEngine.Move(playerClicks[0], playerClicks[1], gameState.board)
-                    print(move.getChessNotation())
-                    for i in range(len(validMoves)):
-                        if move == validMoves[i]:
-                            gameState.makeMove(validMoves[i])
-                            moveMade = True
-                            sqSelected = ()  # reset clicks
-                            playerClicks = []
-                    if not moveMade:
-                        playerClicks = [sqSelected]
+                if humanTurn: #if not gameOver and humanTurn:
+                    location = pg.mouse.get_pos() #(x, y) position of mouse
+                    col = location[0] // SQ_SIZE
+                    row = location[1] // SQ_SIZE
+                    if sqSelected == (row, col): #user clicked the same sq twice
+                        sqSelected = () #deselect
+                        playerClicks = [] #clear clicks
+                    else:
+                        sqSelected = (row, col)
+                        playerClicks.append(sqSelected)
+                    if len(playerClicks) == 2: #2nd click
+                        move = ChessEngine.Move(playerClicks[0], playerClicks[1], gameState.board)
+                        print(move.getChessNotation())
+                        for i in range(len(validMoves)):
+                            if move == validMoves[i]:
+                                gameState.makeMove(validMoves[i])
+                                moveMade = True
+                                sqSelected = ()  # reset clicks
+                                playerClicks = []
+                        if not moveMade:
+                            playerClicks = [sqSelected]
             elif event.type == pg.KEYDOWN: #key handler
                 if event.key == pg.K_z:
                     gameState.undoMove()
                     moveMade = True
+                if event.key == pg.K_r:
+                    gameState = ChessEngine.GameState()
+                    validMoves = gameState.getValidMoves()
+                    sqSelected = ()
+                    playerClicks = []
+                    moveMade = False
+        #ai move finder
+        if not humanTurn: #if not gameOver and not humanTurn:
+            AIMove = ChessAi.findRandomMove(validMoves)
+            gameState.makeMove(AIMove)
+            moveMade = True
+            print("AI MOVE: " + AIMove.getChessNotation())
         if moveMade:
             validMoves = gameState.getValidMoves()
             moveMade = False
