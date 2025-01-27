@@ -21,7 +21,6 @@
 
 #### In-Game:
 * Press `z` to undo a move.
-* Press `r` to reset the game.
 
 ## Further development ideas
 1.
