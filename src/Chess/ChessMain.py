@@ -56,10 +56,10 @@ def main():
                         playerClicks.append(sqSelected)
                     if len(playerClicks) == 2: #2nd click
                         move = ChessEngine.Move(playerClicks[0], playerClicks[1], gameState.board)
-                        print(move.getChessNotation())
                         for i in range(len(validMoves)):
                             if move == validMoves[i]:
                                 gameState.makeMove(validMoves[i])
+                                print(move.getChessNotation())
                                 moveMade = True
                                 sqSelected = ()  # reset clicks
                                 playerClicks = []
@@ -75,9 +75,13 @@ def main():
                     sqSelected = ()
                     playerClicks = []
                     moveMade = False
+                if event.key == pg.K_p:
+                    playerOne = ~playerOne
         #ai move finder
         if not humanTurn: #if not gameOver and not humanTurn:
-            AIMove = ChessAi.findRandomMove(validMoves)
+            AIMove = ChessAi.findBestMove(gameState, validMoves)
+            if AIMove is None:
+                AIMove = ChessAi.findRandomMove(validMoves)
             gameState.makeMove(AIMove)
             moveMade = True
             print("AI MOVE: " + AIMove.getChessNotation())
