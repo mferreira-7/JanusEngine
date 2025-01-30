@@ -3,7 +3,7 @@ import random
 pieceScore = {"k":0, "q":10, "r":5, "b":3, "n":3, "p":1}
 CHECKMATE = 1000
 STALEMATE = 0 #better than a losing position (-x) but worse than a winning position (+x)
-DEPTH = 1
+DEPTH = 3 #minimum 3 for realistic bot gameplay (currently VERY slow)
 
 """
 Returns a random valid move from the list of validMoves
@@ -58,7 +58,7 @@ def findBestMoveMinMax(gameState, validMoves):
 def findMoveMinMax(gameState, validMoves, depth, whiteToMove):
     global nextMove #just learned this :)
     if depth == 0:
-        return scoreMaterial(gameState.board)
+        return scoreBoard(gameState)
     if whiteToMove: #maximise
         maxScore = -CHECKMATE
         for move in validMoves:
