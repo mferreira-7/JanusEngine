@@ -69,22 +69,30 @@ def main():
                 if event.key == pg.K_z:
                     gameState.undoMove()
                     moveMade = True
+                    #gameOver = False
                 if event.key == pg.K_r:
                     gameState = ChessEngine.GameState()
                     validMoves = gameState.getValidMoves()
                     sqSelected = ()
                     playerClicks = []
                     moveMade = False
+                    #gameOver = False
+                if event.key == pg.K_o:
+                    controller = "human" if playerOne == False else "bot"
+                    playerOne = not playerOne
+                    print("White is now a " + controller)
                 if event.key == pg.K_p:
-                    playerOne = ~playerOne
+                    controller = "human" if playerTwo == False else "bot"
+                    playerTwo = not playerTwo
+                    print("Black is now a " + controller)
         #ai move finder
         if not humanTurn: #if not gameOver and not humanTurn:
-            AIMove = ChessAi.findBestMove(gameState, validMoves)
+            AIMove = ChessAi.findBestMoveMinMax(gameState, validMoves)
             if AIMove is None:
                 AIMove = ChessAi.findRandomMove(validMoves)
             gameState.makeMove(AIMove)
             moveMade = True
-            print("AI MOVE: " + AIMove.getChessNotation())
+            print("BOT MOVE: " + AIMove.getChessNotation())
         if moveMade:
             validMoves = gameState.getValidMoves()
             moveMade = False
