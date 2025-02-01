@@ -3,7 +3,7 @@ import random
 pieceScore = {"k":0, "q":10, "r":5, "b":3, "n":3, "p":1}
 CHECKMATE = 1000
 STALEMATE = 0 #better than a losing position (-x) but worse than a winning position (+x)
-DEPTH = 3 #minimum 3 for realistic bot gameplay (currently VERY slow)
+DEPTH = 1 #maximum depth, must be (>2) for realistic bot gameplay
 
 """
 Returns a random valid move from the list of validMoves
@@ -48,10 +48,11 @@ def findBestMove(gameState, validMoves):
         gameState.undoMove()
     return bestPlayerMove
 
-def findBestMoveMinMax(gameState, validMoves):
+def findBestMove(gameState, validMoves): #reassigned
     global nextMove
     nextMove = None
-    findMoveMinMax(gameState, validMoves, DEPTH, gameState.whiteToMove)
+    random.shuffle(validMoves)
+    findMoveNegaMax(gameState, validMoves, DEPTH, 1 if gameState.whiteToMove else -1)
     return nextMove
 
 
@@ -83,6 +84,22 @@ def findMoveMinMax(gameState, validMoves, depth, whiteToMove):
                     nextMove = move
             gameState.undoMove()
         return minScore
+
+def findMoveNegaMax(gameState, validMoves, depth, turnMultiplier):
+    global nextMove
+    if depth == 0:
+        return turnMultiplier * scoreBoard(gameState)
+    maxScore = -CHECKMATE
+    for move in validMoves:
+        gameState.makeMove(move)
+        nextMoves = gameState.getValidMoves()
+        score = -findMoveNegaMax(gameState, nextMoves, depth-1, -turnMultiplier) #turnMult is either -1 (Black) or 1 (White), so -turnMult will switch color
+        if score > maxScore:
+            maxScore = score
+            if depth == DEPTH:
+                nextMove = move
+        gameState.undoMove()
+    return maxScore
 
 """
 positive score is good for white, negative score is good for black

@@ -87,7 +87,7 @@ def main():
                     print("Black is now a " + controller)
         #ai move finder
         if not humanTurn: #if not gameOver and not humanTurn:
-            AIMove = ChessAi.findBestMoveMinMax(gameState, validMoves)
+            AIMove = ChessAi.findBestMove(gameState, validMoves)
             if AIMove is None:
                 AIMove = ChessAi.findRandomMove(validMoves)
             gameState.makeMove(AIMove)
