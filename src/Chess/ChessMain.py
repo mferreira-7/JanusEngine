@@ -1,6 +1,7 @@
 """
 Handles user input and displays the current game state
 """
+from time import sleep
 
 import pygame as pg
 import ChessEngine, ChessAi
@@ -36,6 +37,7 @@ def main():
     running = True
     sqSelected = () #tracks the last click of the user (row, col)
     playerClicks = [] #tracks a pair of player clicks [(6,4), (4,4)]
+    gameOver = False
     playerOne = True #if human is playing white, this is true. if ai this is false
     playerTwo = True #as above but for black
     while running:
@@ -44,7 +46,7 @@ def main():
             if event.type == pg.QUIT: #quit handler
                 running = False
             elif event.type == pg.MOUSEBUTTONDOWN: #mouse handler
-                if humanTurn: #if not gameOver and humanTurn:
+                if not gameOver and humanTurn:
                     location = pg.mouse.get_pos() #(x, y) position of mouse
                     col = location[0] // SQ_SIZE
                     row = location[1] // SQ_SIZE
@@ -69,24 +71,24 @@ def main():
                 if event.key == pg.K_z:
                     gameState.undoMove()
                     moveMade = True
-                    #gameOver = False
+                    gameOver = False
                 if event.key == pg.K_r:
                     gameState = ChessEngine.GameState()
                     validMoves = gameState.getValidMoves()
                     sqSelected = ()
                     playerClicks = []
                     moveMade = False
-                    #gameOver = False
-                if event.key == pg.K_o:
+                    gameOver = False
+                if event.key == pg.K_1:
                     controller = "human" if playerOne is False else "bot"
                     playerOne = not playerOne
                     print("White is now a " + controller)
-                if event.key == pg.K_p:
+                if event.key == pg.K_2:
                     controller = "human" if playerTwo is False else "bot"
                     playerTwo = not playerTwo
                     print("Black is now a " + controller)
         #ai move finder
-        if not humanTurn: #if not gameOver and not humanTurn:
+        if not gameOver and not humanTurn:
             AIMove = ChessAi.findBestMove(gameState, validMoves)
             if AIMove is None:
                 AIMove = ChessAi.findRandomMove(validMoves)
@@ -97,6 +99,18 @@ def main():
             validMoves = gameState.getValidMoves()
             moveMade = False
         drawGameState(screen, gameState, validMoves, sqSelected)
+        if gameState.checkmate:
+            gameOver = True
+            if gameState.whiteToMove:
+                drawText(screen, "Black wins by checkmate")
+                print("BLACK CHECKMATE")
+            else:
+                drawText(screen, "White wins by checkmate")
+                print("WHITE CHECKMATE")
+        elif gameState.stalemate:
+            gameOver = True
+            drawText(screen, "Stalemate")
+            print("STALEMATE")
         clock.tick(MAX_FPS)
         pg.display.flip()
 
@@ -153,6 +167,17 @@ def drawPieces(screen, board):
             piece = board[row][column]
             if piece != "--":
                 screen.blit(IMAGES[piece], pg.Rect(column * SQ_SIZE, row * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+
+"""
+Draw text on the screen
+"""
+
+def drawText(screen, text):
+    font = pg.font.SysFont("Helvicitca", 32, False, False)
+    textObj = font.render(text, 0, pg.Color("black"))
+    textLocation = pg.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH // 2 - textObj.get_width() // 2, HEIGHT // 2 - textObj.get_height() // 2)
+    screen.blit(textObj, textLocation)
+
 
 if __name__ == '__main__':
     main()
