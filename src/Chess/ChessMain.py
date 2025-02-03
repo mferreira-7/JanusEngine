@@ -36,8 +36,8 @@ def main():
     running = True
     sqSelected = () #tracks the last click of the user (row, col)
     playerClicks = [] #tracks a pair of player clicks [(6,4), (4,4)]
-    playerOne = False #if human is playing white, this is true. if ai this is false
-    playerTwo = False #as above but for black
+    playerOne = True #if human is playing white, this is true. if ai this is false
+    playerTwo = True #as above but for black
     while running:
         humanTurn = (gameState.whiteToMove and playerOne) or (not gameState.whiteToMove and playerTwo)
         for event in pg.event.get():
@@ -78,11 +78,11 @@ def main():
                     moveMade = False
                     #gameOver = False
                 if event.key == pg.K_o:
-                    controller = "human" if playerOne == False else "bot"
+                    controller = "human" if playerOne is False else "bot"
                     playerOne = not playerOne
                     print("White is now a " + controller)
                 if event.key == pg.K_p:
-                    controller = "human" if playerTwo == False else "bot"
+                    controller = "human" if playerTwo is False else "bot"
                     playerTwo = not playerTwo
                     print("Black is now a " + controller)
         #ai move finder
@@ -96,17 +96,41 @@ def main():
         if moveMade:
             validMoves = gameState.getValidMoves()
             moveMade = False
-        drawGameState(screen, gameState)
+        drawGameState(screen, gameState, validMoves, sqSelected)
         clock.tick(MAX_FPS)
         pg.display.flip()
+
+"""
+Highight selected square and moves
+"""
+
+def highlightSquares(screen, gameState, validMoves, sqSelected):
+    if sqSelected != ():
+        row, col = sqSelected
+        if gameState.board[row][col][-1] == ("W" if gameState.whiteToMove else "B"): #sqSelected piece can be moved
+            #highlight selected sqr
+            s = pg.Surface((SQ_SIZE, SQ_SIZE))
+            s.set_alpha(100) #transparency value (0 = transparent, 255 = opaque)
+            s.fill(pg.Color("blue"))
+            screen.blit(s, (col * SQ_SIZE, row * SQ_SIZE))
+            for move in validMoves:
+                if move.startRow == row and move.startCol == col:
+                    endSqr = gameState.board[move.endRow][move.endCol]
+                    if endSqr[-1] == ("W" if not gameState.whiteToMove else "B"):
+                        s.fill(pg.Color("red"))
+                    else:
+                        s.fill(pg.Color("yellow"))
+                    screen.blit(s, (move.endCol * SQ_SIZE, move.endRow * SQ_SIZE))
 
 """
 Function to handle all the graphics of this program
 """
 
-def drawGameState(screen, gameState):
+def drawGameState(screen, gameState, validMoves, sqSelected):
     drawBoard(screen)  #draw squares on the board
+    highlightSquares(screen, gameState, validMoves, sqSelected)
     drawPieces(screen, gameState.board)  #draw pieces on the board
+
 
 """
 Draw the squares
