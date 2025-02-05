@@ -30,7 +30,7 @@ def main():
     screen = pg.display.set_mode((BOARD_WIDTH+MOVE_LOG_PANEL_WIDTH, BOARD_HEIGHT))
     clock = pg.time.Clock()
     screen.fill(pg.Color('white'))
-    moveLogFont = pg.font.SysFont("Arial", 20, False, False)
+    moveLogFont = pg.font.SysFont("Arial", 12, False, False)
     gameState = ChessEngine.GameState()
     validMoves = gameState.getValidMoves()
     moveMade = False #debouncer for when a move is made
@@ -129,7 +129,7 @@ def highlightSquares(screen, gameState, validMoves, sqSelected):
                 if move.startRow == row and move.startCol == col:
                     endSqr = gameState.board[move.endRow][move.endCol]
                     if endSqr[-1] == ("W" if not gameState.whiteToMove else "B"):
-                        s.fill(pg.Color("red")) #TODO: this doesnt apply to enpassant moves, fix it
+                        s.fill(pg.Color("red")) #TODO - this doesnt apply to enpassant moves, fix it
                     else:
                         s.fill(pg.Color("yellow"))
                     screen.blit(s, (move.endCol * SQ_SIZE, move.endRow * SQ_SIZE))
@@ -188,7 +188,7 @@ def drawMoveLog(screen, gameState, font):
     moveTexts = moveLog
     padding = 5
     textY = padding
-    for i in range(len(moveTexts)):
+    for i in range(len(moveTexts)): #TODO - Split W and B moves to separate columns or in-line (might remove piece take notation and add piece capture list)
         text = moveTexts[i].getChessNotation()
         textObj = font.render(text, True, pg.Color("white"))
         textLocation = moveLogRect.move(padding, textY)

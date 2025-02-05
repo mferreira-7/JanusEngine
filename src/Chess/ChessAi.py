@@ -3,7 +3,7 @@ import random
 pieceScore = {"k":0, "q":10, "r":5, "b":3, "n":3, "p":1}
 CHECKMATE = 1000
 STALEMATE = 0 #better than a losing position (-x) but worse than a winning position (+x)
-DEPTH = 3 #maximum depth, must be (>2) for realistic bot gameplay
+DEPTH = 1 #maximum depth, must be (>2) for realistic bot gameplay
 
 """
 Returns a random valid move from the list of validMoves
