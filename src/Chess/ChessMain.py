@@ -1,7 +1,6 @@
 """
 Handles user input and displays the current game state
 """
-from time import sleep
 
 import pygame as pg
 import ChessEngine, ChessAi
@@ -131,7 +130,7 @@ def highlightSquares(screen, gameState, validMoves, sqSelected):
                 if move.startRow == row and move.startCol == col:
                     endSqr = gameState.board[move.endRow][move.endCol]
                     if endSqr[-1] == ("W" if not gameState.whiteToMove else "B"):
-                        s.fill(pg.Color("red"))
+                        s.fill(pg.Color("red")) #TODO: this doesnt apply to enpassant moves, fix it
                     else:
                         s.fill(pg.Color("yellow"))
                     screen.blit(s, (move.endCol * SQ_SIZE, move.endRow * SQ_SIZE))

@@ -12,9 +12,9 @@ class GameState:
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],#8x8 2d array, each element has two chars representing the piece (typeCOLOR) or 2 dashes for no piece
             ["--", "--", "--", "--", "--", "--", "--", "--"],#could be using a numpy array
-            ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["pW", "pW", "pW", "pW", "pW", "pW", "pW", "pW"],
-            ["rW", "nW", "bW", "qW", "kW", "bW", "nW", "rW"]
+            ["--", "--", "bB", "--", "--", "--", "--", "--"],
+            ["pW", "--", "pW", "pW", "pW", "pW", "pW", "pW"],
+            ["rW", "--", "--", "--", "kW", "bW", "nW", "rW"]
         ]
         self.moveFunctions = {"p":self.getPawnMoves, "r":self.getRookMoves, "n":self.getKnightMoves,
                               "b":self.getBishopMoves, "q":self.getQueenMoves, "k":self.getKingMoves}
@@ -93,7 +93,7 @@ class GameState:
             #undo castling rights
             self.castleRightsLog.pop() #remove most recent castle right
             self.currentCastlingRights = self.castleRightsLog[-1] #make NEW most recent castle rights the current castle rights
-            #undo castle move
+            #undo castle move TODO: after undoing, i cannot castle. Fix it.  TODO: if a piece captures a rook, I can castle with that opposing piece, fix it.
             if move.isCastleMove:
                 if move.endCol - move.startCol == 2: #kingside castle
                     self.board[move.endRow][move.endCol + 1] = self.board[move.endRow][move.endCol - 1]
@@ -130,6 +130,7 @@ class GameState:
                     self.currentCastlingRights.bqs = False
                 elif move.startCol == 7: #right rook
                     self.currentCastlingRights.bks = False
+
 
     """
     All moves (including check avoidance)
@@ -340,7 +341,7 @@ class GameState:
 
     def getQueenSideCastleMoves(self, row, col, moves):
         if self.board[row][col-1] == "--" and self.board[row][col-2] == "--" and self.board[row][col-3] == "--": #Case 2 - three sqrs for Qside but same logic
-            if not self.squareUnderAttack(row, col-1) and not self.squareUnderAttack(row, col-2) : #Case 3
+            if not self.squareUnderAttack(row, col-1) and not self.squareUnderAttack(row, col-2): #Case 3
                 moves.append(Move((row, col), (row, col-2), self.board, isCastleMove = True))
 
 class CastleRights:
