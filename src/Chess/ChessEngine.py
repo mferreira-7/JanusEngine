@@ -12,9 +12,9 @@ class GameState:
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],#8x8 2d array, each element has two chars representing the piece (typeCOLOR) or 2 dashes for no piece
             ["--", "--", "--", "--", "--", "--", "--", "--"],#could be using a numpy array
-            ["--", "--", "bB", "--", "--", "--", "--", "--"],
-            ["pW", "--", "pW", "pW", "pW", "pW", "pW", "pW"],
-            ["rW", "--", "--", "--", "kW", "bW", "nW", "rW"]
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
+            ["pW", "pW", "pW", "pW", "pW", "pW", "pW", "pW"],
+            ["rW", "nW", "bW", "qW", "kW", "bW", "nW", "rW"]
         ]
         self.moveFunctions = {"p":self.getPawnMoves, "r":self.getRookMoves, "n":self.getKnightMoves,
                               "b":self.getBishopMoves, "q":self.getQueenMoves, "k":self.getKingMoves}
@@ -93,7 +93,7 @@ class GameState:
             #undo castling rights
             self.castleRightsLog.pop() #remove most recent castle right
             self.currentCastlingRights = self.castleRightsLog[-1] #make NEW most recent castle rights the current castle rights
-            #undo castle move TODO: after undoing, i cannot castle. Fix it.  TODO: if a piece captures a rook, I can castle with that opposing piece, fix it.
+            #undo castle move
             if move.isCastleMove:
                 if move.endCol - move.startCol == 2: #kingside castle
                     self.board[move.endRow][move.endCol + 1] = self.board[move.endRow][move.endCol - 1]
@@ -129,6 +129,19 @@ class GameState:
                 if move.startCol == 0: #left rook
                     self.currentCastlingRights.bqs = False
                 elif move.startCol == 7: #right rook
+                    self.currentCastlingRights.bks = False
+        #if the rook is taken
+        if move.pieceCaptured == "rW":
+            if move.endRow == 7:
+                if move.endCol == 0:
+                    self.currentCastlingRights.wqs = False
+                elif move.endCol == 7:
+                    self.currentCastlingRights.wks = False
+        elif move.pieceCaptured == "rB":
+            if move.endRow == 0:
+                if move.endCol == 0:
+                    self.currentCastlingRights.bqs = False
+                elif move.endCol == 7:
                     self.currentCastlingRights.bks = False
 
 

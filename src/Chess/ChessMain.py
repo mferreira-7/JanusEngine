@@ -1,13 +1,14 @@
 """
 Handles user input and displays the current game state
 """
-
 import pygame as pg
 import ChessEngine, ChessAi
 
-WIDTH = HEIGHT = 512  #this could be 400
+BOARD_WIDTH = BOARD_HEIGHT = 512  #this could be 400
+MOVE_LOG_PANEL_WIDTH = 250
+MOVE_LOG_PANEL_HEIGHT = BOARD_HEIGHT
 DIMENSION = 8  #chess board is 8x8
-SQ_SIZE = HEIGHT // DIMENSION
+SQ_SIZE = BOARD_HEIGHT // DIMENSION
 MAX_FPS = 15  #possible animations
 IMAGES = {}
 
@@ -26,9 +27,10 @@ main function for handling user input and updating the graphics
 
 def main():
     pg.init()
-    screen = pg.display.set_mode((WIDTH, HEIGHT))
+    screen = pg.display.set_mode((BOARD_WIDTH+MOVE_LOG_PANEL_WIDTH, BOARD_HEIGHT))
     clock = pg.time.Clock()
     screen.fill(pg.Color('white'))
+    moveLogFont = pg.font.SysFont("Arial", 20, False, False)
     gameState = ChessEngine.GameState()
     validMoves = gameState.getValidMoves()
     moveMade = False #debouncer for when a move is made
@@ -49,7 +51,7 @@ def main():
                     location = pg.mouse.get_pos() #(x, y) position of mouse
                     col = location[0] // SQ_SIZE
                     row = location[1] // SQ_SIZE
-                    if sqSelected == (row, col): #user clicked the same sq twice
+                    if sqSelected == (row, col) or col >= 8: #user clicked the same sq twice or clicked move log
                         sqSelected = () #deselect
                         playerClicks = [] #clear clicks
                     else:
@@ -97,19 +99,16 @@ def main():
         if moveMade:
             validMoves = gameState.getValidMoves()
             moveMade = False
-        drawGameState(screen, gameState, validMoves, sqSelected)
+        drawGameState(screen, gameState, validMoves, sqSelected, moveLogFont)
         if gameState.checkmate:
             gameOver = True
             if gameState.whiteToMove:
-                drawText(screen, "Black wins by checkmate")
-                print("BLACK CHECKMATE")
+                drawEndGameText(screen, "Black wins by checkmate")
             else:
-                drawText(screen, "White wins by checkmate")
-                print("WHITE CHECKMATE")
+                drawEndGameText(screen, "White wins by checkmate")
         elif gameState.stalemate:
             gameOver = True
-            drawText(screen, "Stalemate")
-            print("STALEMATE")
+            drawEndGameText(screen, "Stalemate")
         clock.tick(MAX_FPS)
         pg.display.flip()
 
@@ -139,10 +138,11 @@ def highlightSquares(screen, gameState, validMoves, sqSelected):
 Function to handle all the graphics of this program
 """
 
-def drawGameState(screen, gameState, validMoves, sqSelected):
+def drawGameState(screen, gameState, validMoves, sqSelected, moveLogFont):
     drawBoard(screen)  #draw squares on the board
     highlightSquares(screen, gameState, validMoves, sqSelected)
     drawPieces(screen, gameState.board)  #draw pieces on the board
+    drawMoveLog(screen, gameState, moveLogFont)
 
 
 """
@@ -168,14 +168,32 @@ def drawPieces(screen, board):
                 screen.blit(IMAGES[piece], pg.Rect(column * SQ_SIZE, row * SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
 """
-Draw text on the screen
+Draw text on the end game screen
 """
 
-def drawText(screen, text):
+def drawEndGameText(screen, text):
     font = pg.font.SysFont("Helvicitca", 32, False, False)
     textObj = font.render(text, 0, pg.Color("black"))
-    textLocation = pg.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH // 2 - textObj.get_width() // 2, HEIGHT // 2 - textObj.get_height() // 2)
+    textLocation = pg.Rect(0, 0, BOARD_WIDTH, BOARD_HEIGHT).move(BOARD_WIDTH // 2 - textObj.get_width() // 2, BOARD_HEIGHT // 2 - textObj.get_height() // 2)
     screen.blit(textObj, textLocation)
+
+"""
+Draw the moveLog
+"""
+
+def drawMoveLog(screen, gameState, font):
+    moveLogRect = pg.Rect(BOARD_WIDTH,0,MOVE_LOG_PANEL_WIDTH,MOVE_LOG_PANEL_HEIGHT)
+    pg.draw.rect(screen, pg.Color("black"), moveLogRect)
+    moveLog = gameState.moveLog
+    moveTexts = moveLog
+    padding = 5
+    textY = padding
+    for i in range(len(moveTexts)):
+        text = moveTexts[i].getChessNotation()
+        textObj = font.render(text, True, pg.Color("white"))
+        textLocation = moveLogRect.move(padding, textY)
+        screen.blit(textObj, textLocation)
+        textY += textObj.get_height()
 
 
 if __name__ == '__main__':
