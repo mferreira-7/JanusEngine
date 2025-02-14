@@ -1,6 +1,30 @@
 import random
 
+"""
+Possible improvements:
+Menu to select AI/Human
+use numpy arrays instead of 2d arrays
+investigate using bitboards 
+create or use database of openings "opening book"
+transposition table (zobrist alogrithm)
+add 50 move draw and 3 move repeating draw rule 
+move  ordering - look at checks, captures and threats first, prioritize castling/king safety, look at pawn moves last (this will improve alpha-beta pruning). Also start with moves that previously scored higher (will also improve pruning).
+-Calculate both players moves given a position
+-Change move calculation to make it more efficient. Instead of recalculating all moves, start with moves from previous board and change based on last move made
+"""
+
 pieceScore = {"k":0, "q":10, "r":5, "b":3, "n":3, "p":1}
+knightScores = [ #heatmap to show where knights are most valuable TODO: implement for all other pieces
+    [1,1,1,1,1,1,1,1],
+    [1,2,2,2,2,2,2,1],
+    [1,2,3,3,3,3,2,1],
+    [1,2,3,4,4,3,2,1],
+    [1,2,3,4,4,3,2,1],
+    [1,2,3,3,3,3,2,1],
+    [1,2,2,2,2,2,2,1],
+    [1,1,1,1,1,1,1,1]
+]
+piecePositionalScores = {"n":knightScores}
 CHECKMATE = 1000
 STALEMATE = 0 #better than a losing position (-x) but worse than a winning position (+x)
 DEPTH = 1 #maximum depth, must be (>2) for realistic bot gameplay
@@ -38,7 +62,7 @@ def findBestMoveNoRecursion(gameState, validMoves):
                 elif gameState.stalemate:
                     score = STALEMATE
                 else:
-                    score = -turnMultiplier * scoreMaterial(gameState.board)
+                    score = -turnMultiplier * scoreBoard(gameState.board)
                 if score > opponentMaxScore:
                     opponentMaxScore = score
                 gameState.undoMove()
@@ -119,17 +143,23 @@ def scoreBoard(gameState):
         return STALEMATE
 
     score = 0
-    for row in gameState.board:
-        for square in row:
-            if square[-1] == "W":
-                score += pieceScore[square[0]]
-            elif square[-1] == "B":
-                score -= pieceScore[square[0]]
+    for row in range(len(gameState.board)):
+        for col in range(len(gameState.board[row])):
+            square = gameState.board[row][col]
+            if square != "--":
+                #score by position TODO: implement for all other pieces
+                piecePositionalScore = 0
+                if square[0] == "n":
+                    piecePositionalScore = piecePositionalScores["n"][row][col]
+
+                if square[-1] == "W":
+                    score += pieceScore[square[0]] + piecePositionalScore * .1 #scaling
+                elif square[-1] == "B":
+                    score -= pieceScore[square[0]] + piecePositionalScore * .1 #scaling
     return score
 
 """
-Return a score for the board based on material
-"""
+Return a score for the board based on material (OLD)
 
 def scoreMaterial(board):
     score = 0
@@ -140,3 +170,5 @@ def scoreMaterial(board):
             elif square[-1] == "B":
                 score -= pieceScore[square[0]]
     return score
+
+"""

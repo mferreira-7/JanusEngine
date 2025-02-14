@@ -3,6 +3,7 @@ Handles user input and displays the current game state
 """
 import pygame as pg
 import ChessEngine, ChessAi
+from multiprocessing import Process, Queue
 
 BOARD_WIDTH = BOARD_HEIGHT = 512  #this could be 400
 MOVE_LOG_PANEL_WIDTH = 250
