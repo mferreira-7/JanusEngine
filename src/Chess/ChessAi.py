@@ -7,7 +7,7 @@ use numpy arrays instead of 2d arrays
 investigate using bitboards 
 create or use database of openings "opening book"
 transposition table (zobrist alogrithm)
-add 50 move draw and 3 move repeating draw rule 
+add 50 move draw and 3 move repeating draw rule or limit moves to the amount i can fit on screen 
 move  ordering - look at checks, captures and threats first, prioritize castling/king safety, look at pawn moves last (this will improve alpha-beta pruning). Also start with moves that previously scored higher (will also improve pruning).
 -Calculate both players moves given a position
 -Change move calculation to make it more efficient. Instead of recalculating all moves, start with moves from previous board and change based on last move made
