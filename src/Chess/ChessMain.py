@@ -129,8 +129,8 @@ def highlightSquares(screen, gameState, validMoves, sqSelected):
             for move in validMoves:
                 if move.startRow == row and move.startCol == col:
                     endSqr = gameState.board[move.endRow][move.endCol]
-                    if endSqr[-1] == ("W" if not gameState.whiteToMove else "B"):
-                        s.fill(pg.Color("red")) #TODO - this doesnt apply to enpassant moves, fix it
+                    if endSqr[-1] == ("W" if not gameState.whiteToMove else "B") or move.isEnpassantMove:
+                        s.fill(pg.Color("red"))
                     else:
                         s.fill(pg.Color("yellow"))
                     screen.blit(s, (move.endCol * SQ_SIZE, move.endRow * SQ_SIZE))
@@ -188,14 +188,17 @@ def drawMoveLog(screen, gameState, font):
     moveLog = gameState.moveLog
     moveTexts = moveLog
     padding = 5
+    textX = padding
     textY = padding
-    for i in range(len(moveTexts)): #TODO - Split W and B moves to separate columns or in-line (might remove piece take notation and add piece capture list)
+    for i in range(len(moveTexts)): #TODO: More depth means more moves, games above depth 2 have too many moves to fit on the screen. Find a new way to display the moves in the move log
         text = moveTexts[i].getChessNotation()
         textObj = font.render(text, True, pg.Color("white"))
-        textLocation = moveLogRect.move(padding, textY)
+        textLocation = moveLogRect.move(textX, textY)
         screen.blit(textObj, textLocation)
         textY += textObj.get_height()
-
+        if i % 35 == 0 and i > 2:
+            textY = padding
+            textX += 100
 
 if __name__ == '__main__':
     main()

@@ -402,7 +402,7 @@ class Move:
         if self.pieceCaptured == "--":
             return self.getRankAndFile(self.startRow, self.startCol) + " -> " + self.getRankAndFile(self.endRow, self.endCol)
         else:
-            return self.getRankAndFile(self.startRow, self.startCol) + " -> " + self.getRankAndFile(self.endRow, self.endCol) + " [" + self.pieceMoved + " takes " + self.pieceCaptured + "]"
+            return self.getRankAndFile(self.startRow, self.startCol) + " x " + self.getRankAndFile(self.endRow, self.endCol)
 
     def getRankAndFile(self, row, col):
         return self.colsToFiles[col] + self.rowsToRanks[row] #(5,5) -> F3

@@ -13,8 +13,34 @@ move  ordering - look at checks, captures and threats first, prioritize castling
 -Change move calculation to make it more efficient. Instead of recalculating all moves, start with moves from previous board and change based on last move made
 """
 
+"""
+Time to run a full game at depth 3:
+
+after piece positional scores - 24mins
+"""
+
 pieceScore = {"k":0, "q":10, "r":5, "b":3, "n":3, "p":1}
-knightScores = [ #heatmap to show where knights are most valuable TODO: implement for all other pieces
+blackPawnScores = [ #heatmap to show where black pawns are most valuable
+    [0,0,0,0,0,0,0,0],
+    [1,1,1,0,0,1,1,1],
+    [1,1,2,3,3,2,1,1],
+    [1,2,3,4,4,3,2,1],
+    [2,3,3,5,5,3,3,2],
+    [5,6,6,7,7,6,6,5],
+    [8,8,8,8,8,8,8,8],
+    [8,8,8,8,8,8,8,8]
+]
+whitePawnScores = [ #heatmap to show where white pawns are most valuable
+    [8,8,8,8,8,8,8,8],
+    [8,8,8,8,8,8,8,8],
+    [5,6,6,7,7,6,6,5],
+    [2,3,3,5,5,3,3,2],
+    [1,2,3,4,4,3,2,1],
+    [1,1,2,3,3,2,1,1],
+    [1,1,1,0,0,1,1,1],
+    [0,0,0,0,0,0,0,0]
+]
+knightScores = [ #heatmap to show where knights are most valuable
     [1,1,1,1,1,1,1,1],
     [1,2,2,2,2,2,2,1],
     [1,2,3,3,3,3,2,1],
@@ -24,10 +50,40 @@ knightScores = [ #heatmap to show where knights are most valuable TODO: implemen
     [1,2,2,2,2,2,2,1],
     [1,1,1,1,1,1,1,1]
 ]
-piecePositionalScores = {"n":knightScores}
+bishopScores = [ #heatmap to show where bishops are most valuable
+    [4,3,2,1,1,2,3,4],
+    [3,4,3,2,2,3,4,3],
+    [2,3,4,3,3,4,3,2],
+    [1,2,3,4,4,3,2,1],
+    [1,2,3,4,4,3,2,1],
+    [2,3,4,3,3,4,3,2],
+    [3,4,3,2,2,3,4,3],
+    [4,3,2,1,1,2,3,4]
+]
+rookScores = [ #heatmap to show where rooks are most valuable
+    [4,3,4,4,4,4,3,4],
+    [4,4,4,4,4,4,4,4],
+    [1,1,2,3,3,2,1,1],
+    [1,2,3,4,4,3,2,1],
+    [1,2,3,4,4,3,2,1],
+    [1,1,2,2,2,2,1,1],
+    [4,4,4,4,4,4,4,4],
+    [4,3,4,4,4,4,3,4]
+]
+queenScores = [ #heatmap to show where queens are most valuable
+    [1,1,1,3,1,1,1,1],
+    [1,2,3,3,3,1,1,1],
+    [1,4,3,3,3,4,2,1],
+    [1,2,3,3,3,2,2,1],
+    [1,2,3,3,3,2,2,1],
+    [1,4,3,3,3,4,2,1],
+    [1,1,2,3,3,1,1,1],
+    [1,1,1,3,1,1,1,1]
+]
+piecePositionalScores = {"q":queenScores, "r":rookScores, "b":bishopScores, "n":knightScores, "pW":whitePawnScores, "pB":blackPawnScores}
 CHECKMATE = 1000
 STALEMATE = 0 #better than a losing position (-x) but worse than a winning position (+x)
-DEPTH = 1 #maximum depth, must be (>2) for realistic bot gameplay
+DEPTH = 2 #maximum depth, must be (>2) for realistic bot gameplay
 
 """
 Returns a random valid move from the list of validMoves
@@ -147,11 +203,12 @@ def scoreBoard(gameState):
         for col in range(len(gameState.board[row])):
             square = gameState.board[row][col]
             if square != "--":
-                #score by position TODO: implement for all other pieces
-                piecePositionalScore = 0
-                if square[0] == "n":
-                    piecePositionalScore = piecePositionalScores["n"][row][col]
-
+                piecePositionalScore=0
+                #score by position
+                if square[0] not in ["p","k"]:
+                    piecePositionalScore = piecePositionalScores[square[0]][row][col]
+                elif square[0] == "p":
+                    piecePositionalScore = piecePositionalScores[square][row][col]
                 if square[-1] == "W":
                     score += pieceScore[square[0]] + piecePositionalScore * .1 #scaling
                 elif square[-1] == "B":
