@@ -190,7 +190,7 @@ def drawMoveLog(screen, gameState, font):
     padding = 5
     textX = padding
     textY = padding
-    for i in range(len(moveTexts)): #TODO: More depth means more moves, games above depth 2 have too many moves to fit on the screen. Find a new way to display the moves in the move log
+    for i in range(len(moveTexts)): #TODO: limit moves to 140 for movelog, maybe differently for game
         text = moveTexts[i].getChessNotation()
         textObj = font.render(text, True, pg.Color("white"))
         textLocation = moveLogRect.move(textX, textY)
@@ -198,7 +198,7 @@ def drawMoveLog(screen, gameState, font):
         textY += textObj.get_height()
         if i % 35 == 0 and i > 2:
             textY = padding
-            textX += 100
+            textX += 50
 
 if __name__ == '__main__':
     main()

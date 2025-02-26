@@ -83,7 +83,7 @@ queenScores = [ #heatmap to show where queens are most valuable
 piecePositionalScores = {"q":queenScores, "r":rookScores, "b":bishopScores, "n":knightScores, "pW":whitePawnScores, "pB":blackPawnScores}
 CHECKMATE = 1000
 STALEMATE = 0 #better than a losing position (-x) but worse than a winning position (+x)
-DEPTH = 2 #maximum depth, must be (>2) for realistic bot gameplay
+DEPTH = 1 #maximum depth, must be (>2) for realistic bot gameplay
 
 """
 Returns a random valid move from the list of validMoves
