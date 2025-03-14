@@ -400,9 +400,12 @@ class Move:
 
     def getChessNotation(self):
         if self.pieceCaptured == "--":
-            return self.getRankAndFile(self.startRow, self.startCol) + " -> " + self.getRankAndFile(self.endRow, self.endCol)
+            return [self.getRankAndFile(self.startRow, self.startCol), self.getRankAndFile(self.endRow, self.endCol)]
         else:
-            return self.getRankAndFile(self.startRow, self.startCol) + " x " + self.getRankAndFile(self.endRow, self.endCol)
+            return [self.getRankAndFile(self.startRow, self.startCol), "x"+self.getRankAndFile(self.endRow, self.endCol)] #capture
 
     def getRankAndFile(self, row, col):
         return self.colsToFiles[col] + self.rowsToRanks[row] #(5,5) -> F3
+
+    def getRowsAndCol(self, rank, file):
+        return self.filesToCols[file] + self.ranksToRows[rank]

@@ -3,6 +3,7 @@ Handles user input and displays the current game state
 """
 import pygame as pg
 import ChessEngine, ChessAi
+import random
 from multiprocessing import Process, Queue
 
 BOARD_WIDTH = BOARD_HEIGHT = 512  #this could be 400
@@ -12,6 +13,22 @@ DIMENSION = 8  #chess board is 8x8
 SQ_SIZE = BOARD_HEIGHT // DIMENSION
 MAX_FPS = 15  #possible animations
 IMAGES = {}
+
+"""
+Initialising opening books
+"""
+
+with open("data/BlackGrandmasterOpenings.csv", "r") as file:
+    bOpenings = []
+    for row in file:
+        bOpenings.append(row)
+    bOpening = bOpenings[random.randint(0,24)]
+
+with open("data/WhiteGrandmasterOpenings.csv", "r") as file:
+    wOpenings = []
+    for row in file:
+        wOpenings.append(row)
+    wOpening = wOpenings[random.randint(0,24)]
 
 """
 Initialising the global dictionary to hold images, this will benefit performance
@@ -63,7 +80,7 @@ def main():
                         for i in range(len(validMoves)):
                             if move == validMoves[i]:
                                 gameState.makeMove(validMoves[i])
-                                print(move.getChessNotation())
+                                print(str(move.getChessNotation()))
                                 moveMade = True
                                 sqSelected = ()  # reset clicks
                                 playerClicks = []
@@ -91,16 +108,19 @@ def main():
                     print("Black is now a " + controller)
         #ai move finder
         if not gameOver and not humanTurn:
-            AIMove = ChessAi.findBestMove(gameState, validMoves)
+            AIMove = ChessAi.findOpeningBookMove(gameState, bOpening, wOpening, validMoves)
             if AIMove is None:
-                AIMove = ChessAi.findRandomMove(validMoves)
+                AIMove = ChessAi.findBestMove(gameState, validMoves)
+                if AIMove is None:
+                    AIMove = ChessAi.findRandomMove(validMoves)
             gameState.makeMove(AIMove)
             moveMade = True
-            print("BOT MOVE: " + AIMove.getChessNotation())
+            print("BOT MOVE: " + str(AIMove.getChessNotation()))
         if moveMade:
             validMoves = gameState.getValidMoves()
             moveMade = False
         drawGameState(screen, gameState, validMoves, sqSelected, moveLogFont)
+        #game over
         if gameState.checkmate:
             gameOver = True
             if gameState.whiteToMove:
@@ -190,15 +210,33 @@ def drawMoveLog(screen, gameState, font):
     padding = 5
     textX = padding
     textY = padding
-    for i in range(len(moveTexts)): #TODO: limit moves to 140 for movelog, maybe differently for game
-        text = moveTexts[i].getChessNotation()
-        textObj = font.render(text, True, pg.Color("white"))
-        textLocation = moveLogRect.move(textX, textY)
-        screen.blit(textObj, textLocation)
-        textY += textObj.get_height()
-        if i % 35 == 0 and i > 2:
-            textY = padding
-            textX += 50
+    movePair = []
+    turnCount = 0
+    for i in range(len(moveTexts)):
+        movePair.append(moveTexts[i].getChessNotation()[1])
+        if len(movePair) == 2:
+            turnCount += 1
+            textObj = font.render(f"{turnCount}) {movePair[0]} {movePair[1]}", True, pg.Color("white"))
+            textLocation = moveLogRect.move(textX, textY)
+            screen.blit(textObj, textLocation)
+            textY += textObj.get_height()
+            if turnCount == 36 and i > 2:
+                textY = padding
+                textX += 70
+            movePair = []
+
+"""
+Draw the start menu
+"""
+
+def draw_start_menu(screen,):
+    screen.fill((0, 0, 0))
+    font = pg.font.SysFont('arial', 40)
+    title = font.render('My Game', True, (255, 255, 255))
+    start_button = font.render('Start', True, (255, 255, 255))
+    screen.blit(title, (BOARD_WIDTH+MOVE_LOG_PANEL_WIDTH/2 - title.get_width()/2, BOARD_HEIGHT/2 - title.get_height()/2))
+    screen.blit(start_button, (BOARD_WIDTH+MOVE_LOG_PANEL_WIDTH/2 - start_button.get_width()/2, BOARD_HEIGHT/2 + start_button.get_height()/2))
+    pg.display.update()
 
 if __name__ == '__main__':
     main()

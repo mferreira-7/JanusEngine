@@ -1,4 +1,5 @@
 import random
+import ChessEngine
 
 """
 Possible improvements:
@@ -86,6 +87,29 @@ STALEMATE = 0 #better than a losing position (-x) but worse than a winning posit
 DEPTH = 1 #maximum depth, must be (>2) for realistic bot gameplay
 
 """
+Returns the next move in the opening book
+"""
+
+def findOpeningBookMove(gameState, blackString, whiteString, validMoves):
+    blackMoves = blackString.strip('\n').split(", ")
+    whiteMoves = whiteString.strip('\n').split(", ")
+    whiteArray = [0,2,4,6,8,10]
+    blackArray = [1,3,5,7,9,11]
+    if len(gameState.moveLog) in whiteArray:
+        chosenMove = whiteMoves[whiteArray.index(len(gameState.moveLog))] #e7 -> e5
+        chosenMoveParts = chosenMove.split(" -> ")#e7,e5
+        startingSqr = (ChessEngine.Move.filesToCols[chosenMoveParts[0][0]], ChessEngine.Move.ranksToRows[chosenMoveParts[0][1]])#e7 / 4,1
+        endingSqr = (ChessEngine.Move.filesToCols[chosenMoveParts[1][0]], ChessEngine.Move.ranksToRows[chosenMoveParts[1][1]])#e5 / 4,3
+        return None#ChessEngine.Move(startingSqr, endingSqr, gameState.board)
+    elif len(gameState.moveLog) in blackArray:
+        chosenMove = blackMoves[blackArray.index(len(gameState.moveLog))] #e7 -> e5
+        chosenMoveParts = chosenMove.split(" -> ")#e7,e5
+        startingSqr = (ChessEngine.Move.filesToCols[chosenMoveParts[0][0]], ChessEngine.Move.ranksToRows[chosenMoveParts[0][1]])#e7 / 4,1
+        endingSqr = (ChessEngine.Move.filesToCols[chosenMoveParts[1][0]], ChessEngine.Move.ranksToRows[chosenMoveParts[1][1]])#e5 / 4,3
+        return None#ChessEngine.Move(startingSqr, endingSqr, gameState.board)
+    else:
+        return None
+"""
 Returns a random valid move from the list of validMoves
 """
 
@@ -96,74 +120,12 @@ def findRandomMove(validMoves):
 Finds the best move frmo the list of validMoves based on some heuristic (pieceScore)
 """
 
-def findBestMoveNoRecursion(gameState, validMoves):
-    turnMultiplier = 1 if gameState.whiteToMove else -1
-    opponentMinMaxScore = CHECKMATE
-    bestPlayerMove = None
-    random.shuffle(validMoves)
-    for playerMove in validMoves:
-        gameState.makeMove(playerMove)
-        opponentMoves = gameState.getValidMoves()
-        if gameState.stalemate:
-            opponentMaxScore = -STALEMATE
-        elif gameState.checkmate:
-            opponentMaxScore = -CHECKMATE
-        else:
-            opponentMaxScore = -CHECKMATE
-            for opponentMove in opponentMoves:
-                gameState.makeMove(opponentMove)
-                gameState.getValidMoves()
-                if gameState.checkmate:
-                    score = CHECKMATE
-                elif gameState.stalemate:
-                    score = STALEMATE
-                else:
-                    score = -turnMultiplier * scoreBoard(gameState.board)
-                if score > opponentMaxScore:
-                    opponentMaxScore = score
-                gameState.undoMove()
-        if opponentMaxScore < opponentMinMaxScore:
-            opponentMinMaxScore = opponentMaxScore
-            bestPlayerMove = playerMove
-        gameState.undoMove()
-    return bestPlayerMove
-
 def findBestMove(gameState, validMoves):
     global nextMove
     nextMove = None
     random.shuffle(validMoves)
     findMoveNegaMaxAlphaBeta(gameState, validMoves, DEPTH, -CHECKMATE, CHECKMATE, 1 if gameState.whiteToMove else -1)
     return nextMove
-
-
-def findMoveMinMax(gameState, validMoves, depth, whiteToMove):
-    global nextMove #just learned this :)
-    if depth == 0:
-        return scoreBoard(gameState)
-    if whiteToMove: #maximise
-        maxScore = -CHECKMATE
-        for move in validMoves:
-            gameState.makeMove(move)
-            nextMoves = gameState.getValidMoves()
-            score = findMoveMinMax(gameState, nextMoves, depth-1, False)
-            if score > maxScore:
-                maxScore = score
-                if depth == DEPTH:
-                    nextMove = move
-            gameState.undoMove()
-        return maxScore
-    else: #minimise
-        minScore = CHECKMATE
-        for move in validMoves:
-            gameState.makeMove(move)
-            nextMoves = gameState.getValidMoves()
-            score = findMoveMinMax(gameState, nextMoves, depth-1, True)
-            if score < minScore:
-                minScore = score
-                if depth == DEPTH:
-                    nextMove = move
-            gameState.undoMove()
-        return minScore
 
 def findMoveNegaMaxAlphaBeta(gameState, validMoves, depth, alpha, beta, turnMultiplier):
     global nextMove
@@ -214,18 +176,3 @@ def scoreBoard(gameState):
                 elif square[-1] == "B":
                     score -= pieceScore[square[0]] + piecePositionalScore * .1 #scaling
     return score
-
-"""
-Return a score for the board based on material (OLD)
-
-def scoreMaterial(board):
-    score = 0
-    for row in board:
-        for square in row:
-            if square[-1] == "W":
-                score += pieceScore[square[0]]
-            elif square[-1] == "B":
-                score -= pieceScore[square[0]]
-    return score
-
-"""
