@@ -138,6 +138,7 @@ def findMoveNegaMaxAlphaBeta(gameState, validMoves, depth, alpha, beta, turnMult
     if depth == 0:
         return turnMultiplier * scoreBoard(gameState)
     maxScore = -CHECKMATE
+    validMoves.sort(key = lambda move: scoreMove(move, gameState), reverse = True)
     for move in validMoves:
         gameState.makeMove(move)
         nextMoves = gameState.getValidMoves()
@@ -184,14 +185,15 @@ def scoreBoard(gameState):
     return score
 
 """
-Assigns a score to a move for move ordering 
+Assign a score to a move for move ordering 
 """
+
 def scoreMove(move, gameState):
     if move.pieceCaptured != "--":
-        victim = gameState.board[move.endRow][move.endCol]
-        attacker = gameState.board[move.startRow][move.startCol]
+        victim = move.pieceCaptured
+        attacker = move.pieceMoved
         return 10 * pieceScore[victim[0]] - pieceScore[attacker[0]]  #MostValuableVictim-LeastValuableAttacker prioritization (MVV-LVA)
-    if move.isCheck:
+    if move.pieceCaptured[0] == "k":
         return 5
     if move.isPawnPromotion:
         return 7

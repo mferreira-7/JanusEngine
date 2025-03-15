@@ -7,7 +7,7 @@ import random
 from multiprocessing import Process, Queue
 
 BOARD_WIDTH = BOARD_HEIGHT = 512  #this could be 400
-MOVE_LOG_PANEL_WIDTH = 250
+MOVE_LOG_PANEL_WIDTH = 280
 MOVE_LOG_PANEL_HEIGHT = BOARD_HEIGHT
 DIMENSION = 8  #chess board is 8x8
 SQ_SIZE = BOARD_HEIGHT // DIMENSION
@@ -215,12 +215,12 @@ def drawMoveLog(screen, gameState, font):
     for i in range(len(moveTexts)):
         movePair.append(moveTexts[i].getChessNotation()[1])
         if len(movePair) == 2:
-            turnCount += 1
+            turnCount += 1 #TODO: Limit moves to 144
             textObj = font.render(f"{turnCount}) {movePair[0]} {movePair[1]}", True, pg.Color("white"))
             textLocation = moveLogRect.move(textX, textY)
             screen.blit(textObj, textLocation)
             textY += textObj.get_height()
-            if turnCount == 36 and i > 2:
+            if turnCount % 36 == 0 and i > 2:
                 textY = padding
                 textX += 70
             movePair = []
