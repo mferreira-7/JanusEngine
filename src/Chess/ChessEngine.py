@@ -357,6 +357,33 @@ class GameState:
             if not self.squareUnderAttack(row, col-1) and not self.squareUnderAttack(row, col-2): #Case 3
                 moves.append(Move((row, col), (row, col-2), self.board, isCastleMove = True))
 
+    """
+    Returns a unique index (0-11) for each chess piece
+    """
+
+    def getPieceIndex(self, piece):
+        piece_to_index = {
+            'pW': 0, 'nW': 1, 'bW': 2, 'rW': 3, 'qW': 4, 'kW': 5,
+            'pB': 6, 'nB': 7, 'bB': 8, 'rB': 9, 'qB': 10, 'kB': 11
+        }
+        return piece_to_index.get(piece, -1)
+
+    """
+    Compute a unique hash for a gameState using Zobrist Hashing
+    """
+
+    def getHash(self, ZOBRIST_TABLE):
+        hash = 0
+        for row in range(len(self.board)):
+            for col in range(len(self.board[row])):
+                pos = row*col
+                square = self.board[row][col]
+                if square != "--":
+                    pieceIndex = self.getPieceIndex(square)  #convert piece type to index (0-11)
+                    print(square, pieceIndex)
+                    hash ^= ZOBRIST_TABLE[pos][pieceIndex]  #XOR with unique value
+        return hash
+
 class CastleRights:
     def  __init__(self, wks, bks, wqs, bqs):
         self.wks = wks

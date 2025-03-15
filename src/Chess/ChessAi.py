@@ -82,9 +82,11 @@ queenScores = [ #heatmap to show where queens are most valuable
     [1,1,1,3,1,1,1,1]
 ]
 piecePositionalScores = {"q":queenScores, "r":rookScores, "b":bishopScores, "n":knightScores, "pW":whitePawnScores, "pB":blackPawnScores}
+ZOBRIST_TABLE = [[random.getrandbits(64) for _ in range(12)] for _ in range(64)]  #64 squares x 12 pieces
 CHECKMATE = 1000
 STALEMATE = 0 #better than a losing position (-x) but worse than a winning position (+x)
-DEPTH = 1 #maximum depth, must be (>2) for realistic bot gameplay
+DEPTH = 1 #maximum depth, must be (>2) for realistic bot gameplay (Can be kept at 1 due to iterative deepening)
+transposition_table = {}  #global dictionary to store evaluated positions
 
 """
 Returns the next move in the opening book
@@ -130,29 +132,69 @@ def findBestMove(gameState, validMoves):
     global nextMove
     nextMove = None
     random.shuffle(validMoves)
-    findMoveNegaMaxAlphaBeta(gameState, validMoves, DEPTH, -CHECKMATE, CHECKMATE, 1 if gameState.whiteToMove else -1)
+    #findMoveNegaMaxAlphaBeta(gameState, validMoves, DEPTH, -CHECKMATE, CHECKMATE, 1 if gameState.whiteToMove else -1)
+    iterativeDeepeningSearch(gameState, DEPTH)
     return nextMove
 
+""" 
+Iterative Deepening for better move ordering 
+"""
+
+def iterativeDeepeningSearch(gameState, maxDepth):
+    bestMove = None
+    for depth in range(1, maxDepth + 1):
+        score, move = findMoveNegaMaxAlphaBeta(gameState, gameState.getValidMoves(), depth, -CHECKMATE, CHECKMATE, 1)
+        if move:
+            bestMove = move  #store the best move found so far
+    return bestMove
+
+""" 
+Negamax with Alpha-Beta Pruning and Transposition Table 
+"""
+
 def findMoveNegaMaxAlphaBeta(gameState, validMoves, depth, alpha, beta, turnMultiplier):
-    global nextMove
+    global transposition_table
+    position_hash = gameState.getHash(ZOBRIST_TABLE)  #unique position identifier (using Zobrist hashing)
+    #check Transposition Table**
+    if position_hash in transposition_table:
+        stored_depth, stored_score, stored_move, flag = transposition_table[position_hash]
+        if stored_depth >= depth:  #only used if stored depth is >= current search depth
+            if flag == "EXACT":
+                return stored_score, stored_move
+            elif flag == "LOWERBOUND" and stored_score > alpha:
+                alpha = stored_score
+            elif flag == "UPPERBOUND" and stored_score < beta:
+                beta = stored_score
+            if alpha >= beta:  #cutoff if possible
+                return stored_score, stored_move
     if depth == 0:
-        return turnMultiplier * scoreBoard(gameState)
+        return quiescenceSearch(gameState, alpha, beta, turnMultiplier), None  #capture stability check
     maxScore = -CHECKMATE
-    validMoves.sort(key = lambda move: scoreMove(move, gameState), reverse = True)
+    bestMove = None
+    #move ordering (sorted by past evaluations or heuristics)
+    validMoves.sort(key=lambda move: scoreMove(move, gameState), reverse=True)
     for move in validMoves:
         gameState.makeMove(move)
         nextMoves = gameState.getValidMoves()
-        score = -findMoveNegaMaxAlphaBeta(gameState, nextMoves, depth-1, -beta, -alpha, -turnMultiplier) #turnMult is either -1 (Black) or 1 (White), so -turnMult will switch color
+        score, _ = findMoveNegaMaxAlphaBeta(gameState, nextMoves, depth - 1, -beta, -alpha, -turnMultiplier)
+        score = -score
+        gameState.undoMove()
         if score > maxScore:
             maxScore = score
-            if depth == DEPTH:
-                nextMove = move
-        gameState.undoMove()
-        if maxScore > alpha: #pruning
-            alpha = maxScore
+            bestMove = move
+        alpha = max(alpha, maxScore)
         if alpha >= beta:
-            break
-    return maxScore
+            break  #beta cutoff
+    #store in Transposition Table
+    if maxScore <= alpha:
+        flag = "UPPERBOUND"
+    elif maxScore >= beta:
+        flag = "LOWERBOUND"
+    else:
+        flag = "EXACT"
+    transposition_table[position_hash] = (depth, maxScore, bestMove, flag)
+    return maxScore, bestMove
+
 
 """
 positive score is good for white, negative score is good for black
@@ -200,3 +242,25 @@ def scoreMove(move, gameState):
     if move.isCastleMove:
         return 2
     return 0
+
+""" 
+Evaluates "noisy" positions deeper to avoid the horizon effect 
+"""
+
+def quiescenceSearch(gameState, alpha, beta, turnMultiplier):
+    standPat = turnMultiplier * scoreBoard(gameState)
+    if standPat >= beta:  #cutoff if the position is already good enough
+        return beta
+    if alpha < standPat:
+        alpha = standPat  #improve alpha
+    #get only captures (and maybe checks)
+    captureMoves = [move for move in gameState.getValidMoves() if move.pieceCaptured != "--" or move.pieceCaptured[0] == "k"]
+    for move in sorted(captureMoves, key=lambda m: scoreMove(m, gameState), reverse=True):
+        gameState.makeMove(move)
+        score = -quiescenceSearch(gameState, -beta, -alpha, -turnMultiplier)
+        gameState.undoMove()
+        if score >= beta:
+            return beta  #beta cutoff
+        if score > alpha:
+            alpha = score  #update best score
+    return alpha
