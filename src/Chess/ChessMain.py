@@ -215,7 +215,7 @@ def drawMoveLog(screen, gameState, font):
     for i in range(len(moveTexts)):
         movePair.append(moveTexts[i].getChessNotation()[1])
         if len(movePair) == 2:
-            turnCount += 1 #TODO: Limit moves to 144
+            turnCount += 1
             textObj = font.render(f"{turnCount}) {movePair[0]} {movePair[1]}", True, pg.Color("white"))
             textLocation = moveLogRect.move(textX, textY)
             screen.blit(textObj, textLocation)
@@ -226,7 +226,7 @@ def drawMoveLog(screen, gameState, font):
             movePair = []
 
 """
-Draw the start menu
+Draw the start menu WIP
 """
 
 def draw_start_menu(screen,):

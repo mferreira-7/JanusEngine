@@ -165,7 +165,7 @@ class GameState:
                 moves.remove(moves[i])
             self.whiteToMove = not self.whiteToMove
             self.undoMove()
-        if len(moves) == 0: #checkmate or stalemate
+        if len(moves) == 0 or len(self.moveLog) > 288: #checkmate or stalemate
             if self.inCheck():
                 self.checkmate = True
             else:
