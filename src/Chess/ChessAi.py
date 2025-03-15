@@ -98,17 +98,23 @@ def findOpeningBookMove(gameState, blackString, whiteString, validMoves):
     if len(gameState.moveLog) in whiteArray:
         chosenMove = whiteMoves[whiteArray.index(len(gameState.moveLog))] #e7 -> e5
         chosenMoveParts = chosenMove.split(" -> ")#e7,e5
-        startingSqr = (ChessEngine.Move.filesToCols[chosenMoveParts[0][0]], ChessEngine.Move.ranksToRows[chosenMoveParts[0][1]])#e7 / 4,1
-        endingSqr = (ChessEngine.Move.filesToCols[chosenMoveParts[1][0]], ChessEngine.Move.ranksToRows[chosenMoveParts[1][1]])#e5 / 4,3
-        return None#ChessEngine.Move(startingSqr, endingSqr, gameState.board)
+        startingSqr = (ChessEngine.Move.ranksToRows[chosenMoveParts[0][1]], ChessEngine.Move.filesToCols[chosenMoveParts[0][0]])#e7 / 4,1
+        endingSqr = (ChessEngine.Move.ranksToRows[chosenMoveParts[1][1]], ChessEngine.Move.filesToCols[chosenMoveParts[1][0]])#e5 / 4,3
+        moveMatch = None
+        for move in validMoves:
+            if startingSqr[0] * 1000 + startingSqr[1] * 100 + endingSqr[0] * 10 + endingSqr[1] == move.moveID:
+                moveMatch = move
+        return moveMatch
     elif len(gameState.moveLog) in blackArray:
         chosenMove = blackMoves[blackArray.index(len(gameState.moveLog))] #e7 -> e5
         chosenMoveParts = chosenMove.split(" -> ")#e7,e5
-        startingSqr = (ChessEngine.Move.filesToCols[chosenMoveParts[0][0]], ChessEngine.Move.ranksToRows[chosenMoveParts[0][1]])#e7 / 4,1
-        endingSqr = (ChessEngine.Move.filesToCols[chosenMoveParts[1][0]], ChessEngine.Move.ranksToRows[chosenMoveParts[1][1]])#e5 / 4,3
-        return None#ChessEngine.Move(startingSqr, endingSqr, gameState.board)
-    else:
-        return None
+        startingSqr = (ChessEngine.Move.ranksToRows[chosenMoveParts[0][1]], ChessEngine.Move.filesToCols[chosenMoveParts[0][0]])#e7 / 4,1
+        endingSqr = (ChessEngine.Move.ranksToRows[chosenMoveParts[1][1]], ChessEngine.Move.filesToCols[chosenMoveParts[1][0]])#e5 / 4,3
+        moveMatch = None
+        for move in validMoves:
+            if startingSqr[0] * 1000 + startingSqr[1] * 100 + endingSqr[0] * 10 + endingSqr[1] == move.moveID:
+                moveMatch = move
+        return moveMatch
 """
 Returns a random valid move from the list of validMoves
 """
@@ -176,3 +182,19 @@ def scoreBoard(gameState):
                 elif square[-1] == "B":
                     score -= pieceScore[square[0]] + piecePositionalScore * .1 #scaling
     return score
+
+"""
+Assigns a score to a move for move ordering 
+"""
+def scoreMove(move, gameState):
+    if move.pieceCaptured != "--":
+        victim = gameState.board[move.endRow][move.endCol]
+        attacker = gameState.board[move.startRow][move.startCol]
+        return 10 * pieceScore[victim[0]] - pieceScore[attacker[0]]  #MostValuableVictim-LeastValuableAttacker prioritization (MVV-LVA)
+    if move.isCheck:
+        return 5
+    if move.isPawnPromotion:
+        return 7
+    if move.isCastleMove:
+        return 2
+    return 0
