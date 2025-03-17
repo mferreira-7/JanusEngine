@@ -73,8 +73,20 @@ piecePositionalScores = {"q":queenScores, "r":rookScores, "b":bishopScores, "n":
 ZOBRIST_TABLE = [[random.getrandbits(64) for _ in range(12)] for _ in range(64)]  #64 squares x 12 pieces
 CHECKMATE = 1000
 STALEMATE = 0 #better than a losing position (-x) but worse than a winning position (+x)
-DEPTH = 3 #maximum depth, must be (>2) for realistic bot gameplay (Can be kept at 1 due to iterative deepening)
+DEPTH = 1 #maximum depth, must be (>2) for realistic bot gameplay (Can be kept at 1 due to iterative deepening)
 transposition_table = {}  #global dictionary to store evaluated positions
+
+"""
+Returns the move corresponding to the chosen agent action
+"""
+
+def findAgentMove(gameState, validMoves, Action):
+    #get starting sq and ending sq from Action obj...
+    actionMove = ChessEngine.Move("","",gameState.board)
+    for move in validMoves:
+        if move.__eq__(actionMove):
+            return move
+    return None
 
 """
 Returns the next move in the opening book
@@ -90,21 +102,19 @@ def findOpeningBookMove(gameState, blackString, whiteString, validMoves):
         chosenMoveParts = chosenMove.split(" -> ")#e7,e5
         startingSqr = (ChessEngine.Move.ranksToRows[chosenMoveParts[0][1]], ChessEngine.Move.filesToCols[chosenMoveParts[0][0]])#e7 / 4,1
         endingSqr = (ChessEngine.Move.ranksToRows[chosenMoveParts[1][1]], ChessEngine.Move.filesToCols[chosenMoveParts[1][0]])#e5 / 4,3
-        moveMatch = None
         for move in validMoves:
-            if startingSqr[0] * 1000 + startingSqr[1] * 100 + endingSqr[0] * 10 + endingSqr[1] == move.moveID:
-                moveMatch = move
-        return moveMatch
+            if move.__eq__(ChessEngine.Move(startingSqr, endingSqr, gameState.board)):
+                return move
+        return None
     elif len(gameState.moveLog) in blackArray:
         chosenMove = blackMoves[blackArray.index(len(gameState.moveLog))] #e7 -> e5
         chosenMoveParts = chosenMove.split(" -> ")#e7,e5
         startingSqr = (ChessEngine.Move.ranksToRows[chosenMoveParts[0][1]], ChessEngine.Move.filesToCols[chosenMoveParts[0][0]])#e7 / 4,1
         endingSqr = (ChessEngine.Move.ranksToRows[chosenMoveParts[1][1]], ChessEngine.Move.filesToCols[chosenMoveParts[1][0]])#e5 / 4,3
-        moveMatch = None
         for move in validMoves:
-            if startingSqr[0] * 1000 + startingSqr[1] * 100 + endingSqr[0] * 10 + endingSqr[1] == move.moveID:
-                moveMatch = move
-        return moveMatch
+            if move.__eq__(ChessEngine.Move(startingSqr, endingSqr, gameState.board)):
+                return move
+        return None
 """
 Returns a random valid move from the list of validMoves
 """
@@ -157,8 +167,8 @@ def findMoveNegaMaxAlphaBeta(gameState, validMoves, depth, alpha, beta, turnMult
         return quiescenceSearch(gameState, alpha, beta, turnMultiplier), None  #capture stability check
     maxScore = -CHECKMATE
     bestMove = None
-    #move ordering (sorted by past evaluations or heuristics)
-    validMoves.sort(key=lambda m: scoreMove(m), reverse=True)
+    #move ordering (sorted by heuristics)
+    validMoves.sort(key=lambda m: scoreMove(m, gameState), reverse=True)
     for move in validMoves:
         gameState.makeMove(move)
         nextMoves = gameState.getValidMoves()
@@ -216,13 +226,15 @@ def scoreBoard(gameState):
 Assign a score to a move for move ordering 
 """
 
-def scoreMove(move):
+def scoreMove(move, gameState):
     if move.pieceCaptured != "--":
         victim = move.pieceCaptured
         attacker = move.pieceMoved
         return 10 * pieceScore[victim[0]] - pieceScore[attacker[0]]  #MostValuableVictim-LeastValuableAttacker prioritization (MVV-LVA)
+    if gameState.inCheck():
+        return 8
     if move.isPawnPromotion:
-        return 7
+        return 6
     if move.isEnpassantMove:
         return 4
     if move.isCastleMove:
@@ -241,7 +253,7 @@ def quiescenceSearch(gameState, alpha, beta, turnMultiplier):
         alpha = standPat  #improve alpha
     #get only captures (and maybe checks)
     captureMoves = [move for move in gameState.getValidMoves() if move.pieceCaptured != "--" or move.pieceCaptured[0] == "k"]
-    for move in sorted(captureMoves, key=lambda m: scoreMove(m), reverse=True):
+    for move in sorted(captureMoves, key=lambda m: scoreMove(m, gameState), reverse=True):
         gameState.makeMove(move)
         score = -quiescenceSearch(gameState, -beta, -alpha, -turnMultiplier)
         gameState.undoMove()

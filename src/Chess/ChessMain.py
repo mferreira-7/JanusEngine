@@ -2,7 +2,7 @@
 Handles user input and displays the current game state
 """
 import pygame as pg
-import ChessEngine, ChessAi
+import ChessEngine, ChessAi, ChessAgent
 import random
 from multiprocessing import Process, Queue
 
@@ -18,8 +18,9 @@ IMAGES = {}
 reset = ChessEngine.GameState(), basically what the r key does
 reward = either ChessAi.scoreMove or ChessAi.scoreBoard (after the move)
 makeMove(action) = takes an action and computes the move the model has selected, may overload the makeMove function with multipledispatch
-game = Chessma
-endstate = 
+game = Chessmain
+endstate = gameOver - checkmate or stalemate
+action = move in validmoves
 """
 
 """
@@ -118,14 +119,13 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
                     print("Black is now a " + controller)
         #ai move finder
         if not gameOver and not humanTurn:
-            print("obm")
             AIMove = ChessAi.findOpeningBookMove(gameState, bOpening, wOpening, validMoves)
             if AIMove is None:
-                print("fbm")
-                AIMove = ChessAi.findBestMove(gameState, validMoves)
+                AIMove = ChessAi.findAgentMove(gameState, validMoves, ChessAgent.)#TODO
                 if AIMove is None:
-                    print("frm")
-                    AIMove = ChessAi.findRandomMove(validMoves)
+                    AIMove = ChessAi.findBestMove(gameState, validMoves)
+                    if AIMove is None: #TODO: Sometimes the bot repeats the same move pair until stalemate, here i can add a random move if the moves are repeated x times
+                        AIMove = ChessAi.findRandomMove(validMoves)
             gameState.makeMove(AIMove)
             moveMade = True
             print("BOT MOVE: ", str(AIMove.getChessNotation()))
@@ -138,11 +138,14 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
             gameOver = True
             if gameState.whiteToMove:
                 drawEndGameText(screen, "Black wins by checkmate")
+                print("black reward is", gameState.reward, "white reward is", -gameState.reward)
             else:
                 drawEndGameText(screen, "White wins by checkmate")
+                print("white reward is", gameState.reward, "black reward is", -gameState.reward)
         elif gameState.stalemate:
             gameOver = True
             drawEndGameText(screen, "Stalemate")
+            print("reward is", gameState.reward)
         clock.tick(MAX_FPS)
         pg.display.flip()
 

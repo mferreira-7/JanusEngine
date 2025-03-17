@@ -4,6 +4,8 @@ Determines legal moves from the current state
 Logs past moves, so they can be reversed
 """
 
+import ChessAi
+
 class GameState:
     def __init__(self):
         self.board = [
@@ -24,6 +26,7 @@ class GameState:
         self.blackKingLocation = (0, 4)
         self.checkmate = False
         self.stalemate = False
+        self.reward = 0
         self.enpassantPossible = () #sqr where enpassant is possible
         self.currentCastlingRights = CastleRights(True, True, True, True)
         self.castleRightsLog = [CastleRights(self.currentCastlingRights.wks, self.currentCastlingRights.bks,
@@ -66,6 +69,7 @@ class GameState:
         self.updateCastleRights(move)
         self.castleRightsLog.append(CastleRights(self.currentCastlingRights.wks, self.currentCastlingRights.bks,
                                              self.currentCastlingRights.wqs, self.currentCastlingRights.bqs))
+        self.reward += ChessAi.scoreMove(move, self)
 
     """
     Undo the most recent move
@@ -103,6 +107,7 @@ class GameState:
                     self.board[move.endRow][move.endCol + 1] = "--"
             self.checkmate = False
             self.stalemate = False
+            self.reward -= ChessAi.scoreMove(move, self)
         else:
             print("There are no moves to undo")
 
@@ -167,6 +172,7 @@ class GameState:
             self.undoMove()
         if len(moves) == 0 or len(self.moveLog) > 288: #checkmate or stalemate
             if self.inCheck() and len(moves) == 0:
+                self.reward *= -1
                 self.checkmate = True
             else:
                 self.stalemate = True
