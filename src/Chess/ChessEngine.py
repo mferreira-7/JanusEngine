@@ -166,7 +166,7 @@ class GameState:
             self.whiteToMove = not self.whiteToMove
             self.undoMove()
         if len(moves) == 0 or len(self.moveLog) > 288: #checkmate or stalemate
-            if self.inCheck():
+            if self.inCheck() and len(moves) == 0:
                 self.checkmate = True
             else:
                 self.stalemate = True
@@ -380,7 +380,6 @@ class GameState:
                 square = self.board[row][col]
                 if square != "--":
                     pieceIndex = self.getPieceIndex(square)  #convert piece type to index (0-11)
-                    print(square, pieceIndex)
                     hash ^= ZOBRIST_TABLE[pos][pieceIndex]  #XOR with unique value
         return hash
 

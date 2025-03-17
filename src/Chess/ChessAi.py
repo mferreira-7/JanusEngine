@@ -6,18 +6,6 @@ Possible improvements:
 Menu to select AI/Human
 use numpy arrays instead of 2d arrays
 investigate using bitboards 
-create or use database of openings "opening book"
-transposition table (zobrist alogrithm)
-add 50 move draw and 3 move repeating draw rule or limit moves to the amount i can fit on screen 
-move  ordering - look at checks, captures and threats first, prioritize castling/king safety, look at pawn moves last (this will improve alpha-beta pruning). Also start with moves that previously scored higher (will also improve pruning).
--Calculate both players moves given a position
--Change move calculation to make it more efficient. Instead of recalculating all moves, start with moves from previous board and change based on last move made
-"""
-
-"""
-Time to run a full game at depth 3:
-
-after piece positional scores - 24mins
 """
 
 pieceScore = {"k":0, "q":10, "r":5, "b":3, "n":3, "p":1}
@@ -85,7 +73,7 @@ piecePositionalScores = {"q":queenScores, "r":rookScores, "b":bishopScores, "n":
 ZOBRIST_TABLE = [[random.getrandbits(64) for _ in range(12)] for _ in range(64)]  #64 squares x 12 pieces
 CHECKMATE = 1000
 STALEMATE = 0 #better than a losing position (-x) but worse than a winning position (+x)
-DEPTH = 1 #maximum depth, must be (>2) for realistic bot gameplay (Can be kept at 1 due to iterative deepening)
+DEPTH = 3 #maximum depth, must be (>2) for realistic bot gameplay (Can be kept at 1 due to iterative deepening)
 transposition_table = {}  #global dictionary to store evaluated positions
 
 """
@@ -129,21 +117,19 @@ Finds the best move frmo the list of validMoves based on some heuristic (pieceSc
 """
 
 def findBestMove(gameState, validMoves):
-    global nextMove
-    nextMove = None
     random.shuffle(validMoves)
     #findMoveNegaMaxAlphaBeta(gameState, validMoves, DEPTH, -CHECKMATE, CHECKMATE, 1 if gameState.whiteToMove else -1)
-    iterativeDeepeningSearch(gameState, DEPTH)
-    return nextMove
+    chosenMove = iterativeDeepeningSearch(gameState, validMoves, DEPTH)
+    return chosenMove
 
 """ 
 Iterative Deepening for better move ordering 
 """
 
-def iterativeDeepeningSearch(gameState, maxDepth):
+def iterativeDeepeningSearch(gameState, validMoves, maxDepth):
     bestMove = None
     for depth in range(1, maxDepth + 1):
-        score, move = findMoveNegaMaxAlphaBeta(gameState, gameState.getValidMoves(), depth, -CHECKMATE, CHECKMATE, 1)
+        score, move = findMoveNegaMaxAlphaBeta(gameState, validMoves, depth, -CHECKMATE, CHECKMATE, 1 if gameState.whiteToMove else -1)
         if move:
             bestMove = move  #store the best move found so far
     return bestMove
@@ -172,7 +158,7 @@ def findMoveNegaMaxAlphaBeta(gameState, validMoves, depth, alpha, beta, turnMult
     maxScore = -CHECKMATE
     bestMove = None
     #move ordering (sorted by past evaluations or heuristics)
-    validMoves.sort(key=lambda move: scoreMove(move, gameState), reverse=True)
+    validMoves.sort(key=lambda m: scoreMove(m), reverse=True)
     for move in validMoves:
         gameState.makeMove(move)
         nextMoves = gameState.getValidMoves()
@@ -230,15 +216,15 @@ def scoreBoard(gameState):
 Assign a score to a move for move ordering 
 """
 
-def scoreMove(move, gameState):
+def scoreMove(move):
     if move.pieceCaptured != "--":
         victim = move.pieceCaptured
         attacker = move.pieceMoved
         return 10 * pieceScore[victim[0]] - pieceScore[attacker[0]]  #MostValuableVictim-LeastValuableAttacker prioritization (MVV-LVA)
-    if move.pieceCaptured[0] == "k":
-        return 5
     if move.isPawnPromotion:
         return 7
+    if move.isEnpassantMove:
+        return 4
     if move.isCastleMove:
         return 2
     return 0
@@ -255,7 +241,7 @@ def quiescenceSearch(gameState, alpha, beta, turnMultiplier):
         alpha = standPat  #improve alpha
     #get only captures (and maybe checks)
     captureMoves = [move for move in gameState.getValidMoves() if move.pieceCaptured != "--" or move.pieceCaptured[0] == "k"]
-    for move in sorted(captureMoves, key=lambda m: scoreMove(m, gameState), reverse=True):
+    for move in sorted(captureMoves, key=lambda m: scoreMove(m), reverse=True):
         gameState.makeMove(move)
         score = -quiescenceSearch(gameState, -beta, -alpha, -turnMultiplier)
         gameState.undoMove()

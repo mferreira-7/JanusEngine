@@ -14,6 +14,14 @@ SQ_SIZE = BOARD_HEIGHT // DIMENSION
 MAX_FPS = 15  #possible animations
 IMAGES = {}
 
+""" (ASSUMED)
+reset = ChessEngine.GameState(), basically what the r key does
+reward = either ChessAi.scoreMove or ChessAi.scoreBoard (after the move)
+makeMove(action) = takes an action and computes the move the model has selected, may overload the makeMove function with multipledispatch
+game = Chessma
+endstate = 
+"""
+
 """
 Initialising opening books
 """
@@ -22,13 +30,11 @@ with open("data/BlackGrandmasterOpenings.csv", "r") as file:
     bOpenings = []
     for row in file:
         bOpenings.append(row)
-    bOpening = bOpenings[random.randint(0,24)]
 
 with open("data/WhiteGrandmasterOpenings.csv", "r") as file:
     wOpenings = []
     for row in file:
         wOpenings.append(row)
-    wOpening = wOpenings[random.randint(0,24)]
 
 """
 Initialising the global dictionary to hold images, this will benefit performance
@@ -43,7 +49,7 @@ def loadImages():
 main function for handling user input and updating the graphics
 """
 
-def main():
+def main(): #I want to evaluate the minimax models ELO and then use it to test the DQN
     pg.init()
     screen = pg.display.set_mode((BOARD_WIDTH+MOVE_LOG_PANEL_WIDTH, BOARD_HEIGHT))
     clock = pg.time.Clock()
@@ -51,6 +57,8 @@ def main():
     moveLogFont = pg.font.SysFont("Arial", 12, False, False)
     gameState = ChessEngine.GameState()
     validMoves = gameState.getValidMoves()
+    bOpening = bOpenings[random.randint(0,24)]
+    wOpening = wOpenings[random.randint(0,24)]
     moveMade = False #debouncer for when a move is made
     loadImages()  #only once
     running = True
@@ -92,6 +100,8 @@ def main():
                     moveMade = True
                     gameOver = False
                 if event.key == pg.K_r:
+                    bOpening = bOpenings[random.randint(0, 24)]
+                    wOpening = wOpenings[random.randint(0, 24)]
                     gameState = ChessEngine.GameState()
                     validMoves = gameState.getValidMoves()
                     sqSelected = ()
@@ -108,14 +118,17 @@ def main():
                     print("Black is now a " + controller)
         #ai move finder
         if not gameOver and not humanTurn:
+            print("obm")
             AIMove = ChessAi.findOpeningBookMove(gameState, bOpening, wOpening, validMoves)
             if AIMove is None:
+                print("fbm")
                 AIMove = ChessAi.findBestMove(gameState, validMoves)
                 if AIMove is None:
+                    print("frm")
                     AIMove = ChessAi.findRandomMove(validMoves)
             gameState.makeMove(AIMove)
             moveMade = True
-            print("BOT MOVE: " + str(AIMove.getChessNotation()))
+            print("BOT MOVE: ", str(AIMove.getChessNotation()))
         if moveMade:
             validMoves = gameState.getValidMoves()
             moveMade = False
