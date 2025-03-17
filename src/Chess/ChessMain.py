@@ -58,8 +58,10 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
     moveLogFont = pg.font.SysFont("Arial", 12, False, False)
     gameState = ChessEngine.GameState()
     validMoves = gameState.getValidMoves()
-    bOpening = bOpenings[random.randint(0,24)]
-    wOpening = wOpenings[random.randint(0,24)]
+    bOpening = bOpenings[random.randint(0,23)]
+    wOpening = wOpenings[random.randint(0,23)]
+    print("White Opening selected:", wOpening)
+    print("Black Opening selected:", bOpening)
     moveMade = False #debouncer for when a move is made
     loadImages()  #only once
     running = True
@@ -101,8 +103,10 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
                     moveMade = True
                     gameOver = False
                 if event.key == pg.K_r:
-                    bOpening = bOpenings[random.randint(0, 24)]
-                    wOpening = wOpenings[random.randint(0, 24)]
+                    bOpening = bOpenings[random.randint(0, 23)]
+                    wOpening = wOpenings[random.randint(0, 23)]
+                    print("White Opening selected:", wOpening)
+                    print("Black Opening selected:", bOpening)
                     gameState = ChessEngine.GameState()
                     validMoves = gameState.getValidMoves()
                     sqSelected = ()
@@ -121,7 +125,7 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
         if not gameOver and not humanTurn:
             AIMove = ChessAi.findOpeningBookMove(gameState, bOpening, wOpening, validMoves)
             if AIMove is None:
-                AIMove = ChessAi.findAgentMove(gameState, validMoves, ChessAgent.)#TODO
+                #AIMove = ChessAi.findAgentMove(gameState, validMoves, ChessAgent.)#TODO
                 if AIMove is None:
                     AIMove = ChessAi.findBestMove(gameState, validMoves)
                     if AIMove is None: #TODO: Sometimes the bot repeats the same move pair until stalemate, here i can add a random move if the moves are repeated x times
