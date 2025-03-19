@@ -4,7 +4,7 @@ Determines legal moves from the current state
 Logs past moves, so they can be reversed
 """
 
-import ChessAi
+import ChessAI
 
 class GameState:
     def __init__(self):
@@ -69,7 +69,7 @@ class GameState:
         self.updateCastleRights(move)
         self.castleRightsLog.append(CastleRights(self.currentCastlingRights.wks, self.currentCastlingRights.bks,
                                              self.currentCastlingRights.wqs, self.currentCastlingRights.bqs))
-        self.reward += ChessAi.scoreMove(move, self)
+        self.reward += ChessAI.scoreMove(move, self)
 
     """
     Undo the most recent move
@@ -107,7 +107,7 @@ class GameState:
                     self.board[move.endRow][move.endCol + 1] = "--"
             self.checkmate = False
             self.stalemate = False
-            self.reward -= ChessAi.scoreMove(move, self)
+            self.reward -= ChessAI.scoreMove(move, self)
         else:
             print("There are no moves to undo")
 

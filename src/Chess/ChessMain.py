@@ -2,7 +2,7 @@
 Handles user input and displays the current game state
 """
 import pygame as pg
-import ChessEngine, ChessAi, ChessAgent
+import ChessEngine, ChessAI
 import random
 from multiprocessing import Process, Queue
 
@@ -70,6 +70,7 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
     gameOver = False
     playerOne = True #if human is playing white, this is true. if ai this is false
     playerTwo = True #as above but for black
+    agent = False
     while running:
         humanTurn = (gameState.whiteToMove and playerOne) or (not gameState.whiteToMove and playerTwo)
         for event in pg.event.get():
@@ -123,13 +124,15 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
                     print("Black is now a " + controller)
         #ai move finder
         if not gameOver and not humanTurn:
-            AIMove = ChessAi.findOpeningBookMove(gameState, bOpening, wOpening, validMoves)
+            AIMove = ChessAI.findOpeningBookMove(gameState, bOpening, wOpening, validMoves)
             if AIMove is None:
-                #AIMove = ChessAi.findAgentMove(gameState, validMoves, ChessAgent.)#TODO
+                if agent:
+                    pass
+                    #AIMove = ChessAi.findAgentMove(gameState, validMoves, ChessAgent.)#TODO
                 if AIMove is None:
-                    AIMove = ChessAi.findBestMove(gameState, validMoves)
-                    if AIMove is None: #TODO: Sometimes the bot repeats the same move pair until stalemate, here i can add a random move if the moves are repeated x times
-                        AIMove = ChessAi.findRandomMove(validMoves)
+                    AIMove = ChessAI.findBestMove(gameState, validMoves)
+                    if AIMove is None:
+                        AIMove = ChessAI.findRandomMove(validMoves)
             gameState.makeMove(AIMove)
             moveMade = True
             print("BOT MOVE: ", str(AIMove.getChessNotation()))
@@ -249,7 +252,7 @@ def drawMoveLog(screen, gameState, font):
 Draw the start menu WIP
 """
 
-def draw_start_menu(screen,):
+def draw_start_menu(screen):
     screen.fill((0, 0, 0))
     font = pg.font.SysFont('arial', 40)
     title = font.render('My Game', True, (255, 255, 255))

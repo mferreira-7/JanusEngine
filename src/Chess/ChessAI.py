@@ -239,7 +239,7 @@ def scoreMove(move, gameState):
         return 4
     if move.isCastleMove:
         return 2
-    return 0
+    return 1
 
 """ 
 Evaluates "noisy" positions deeper to avoid the horizon effect 
