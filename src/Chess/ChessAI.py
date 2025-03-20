@@ -1,5 +1,5 @@
 import random
-import ChessEngine
+import ChessEngine, ChessDQN
 
 """
 Possible improvements:
@@ -80,13 +80,16 @@ transposition_table = {}  #global dictionary to store evaluated positions
 Returns the move corresponding to the chosen agent action
 """
 
-def findAgentMove(gameState, validMoves, Action):
-    #get starting sq and ending sq from Action obj...
-    actionMove = ChessEngine.Move("","",gameState.board)
-    for move in validMoves:
-        if move.__eq__(actionMove):
-            return move
-    return None
+def findAgentMove(gameState, validMoves):
+    agent = ChessDQN.test(gameState)
+    agentMove = ChessEngine.Move(_,_,gameState)
+    if agentMove in validMoves:
+        return agentMove
+    return agentMove #return None
+
+def findAgentMove2(gameState):
+    board = ChessDQN.test(gameState)
+    return None #return None
 
 """
 Returns the next move in the opening book

@@ -2,9 +2,8 @@
 Handles user input and displays the current game state
 """
 import pygame as pg
-import ChessEngine, ChessAI
+import ChessEngine, ChessAI, ChessDQN
 import random
-from multiprocessing import Process, Queue
 
 BOARD_WIDTH = BOARD_HEIGHT = 512  #this could be 400
 MOVE_LOG_PANEL_WIDTH = 280
@@ -115,24 +114,24 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
                     moveMade = False
                     gameOver = False
                 if event.key == pg.K_1:
-                    controller = "human" if playerOne is False else "bot"
                     playerOne = not playerOne
-                    print("White is now a " + controller)
+                    print("White is now a", "human" if not playerOne else "bot")
                 if event.key == pg.K_2:
-                    controller = "human" if playerTwo is False else "bot"
                     playerTwo = not playerTwo
-                    print("Black is now a " + controller)
+                    print("Black is now a", "human" if not playerOne else "bot")
+                if event.key == pg.K_3:
+                    agent = not agent
+                    print("Agent", "activated" if agent else "deactivated")
         #ai move finder
         if not gameOver and not humanTurn:
             AIMove = ChessAI.findOpeningBookMove(gameState, bOpening, wOpening, validMoves)
             if AIMove is None:
                 if agent:
-                    pass
-                    #AIMove = ChessAi.findAgentMove(gameState, validMoves, ChessAgent.)#TODO
-                if AIMove is None:
+                    AIMove = ChessAI.findAgentMove2(gameState)
+                else:
                     AIMove = ChessAI.findBestMove(gameState, validMoves)
-                    if AIMove is None:
-                        AIMove = ChessAI.findRandomMove(validMoves)
+                if AIMove is None:
+                    AIMove = ChessAI.findRandomMove(validMoves)
             gameState.makeMove(AIMove)
             moveMade = True
             print("BOT MOVE: ", str(AIMove.getChessNotation()))

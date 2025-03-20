@@ -69,7 +69,7 @@ class GameState:
         self.updateCastleRights(move)
         self.castleRightsLog.append(CastleRights(self.currentCastlingRights.wks, self.currentCastlingRights.bks,
                                              self.currentCastlingRights.wqs, self.currentCastlingRights.bqs))
-        self.reward += ChessAI.scoreMove(move, self)
+        self.reward += (ChessAI.scoreMove(move, self) + ChessAI.scoreBoard(self)) #TODO: decide which way to get a gamestate reward - move score, board score or some combo of both
 
     """
     Undo the most recent move
