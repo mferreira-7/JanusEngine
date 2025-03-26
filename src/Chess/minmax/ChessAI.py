@@ -1,5 +1,5 @@
 import random
-import ChessEngine, ChessDQN
+import ChessEngine
 
 """
 Possible improvements:
@@ -75,21 +75,6 @@ CHECKMATE = 1000
 STALEMATE = 0 #better than a losing position (-x) but worse than a winning position (+x)
 DEPTH = 1 #maximum depth, must be (>2) for realistic bot gameplay (Can be kept at 1 due to iterative deepening)
 transposition_table = {}  #global dictionary to store evaluated positions
-
-"""
-Returns the move corresponding to the chosen agent action
-"""
-
-def findAgentMove(gameState, validMoves):
-    agent = ChessDQN.test(gameState)
-    agentMove = ChessEngine.Move(_,_,gameState)
-    if agentMove in validMoves:
-        return agentMove
-    return agentMove #return None
-
-def findAgentMove2(gameState):
-    board = ChessDQN.test(gameState)
-    return None #return None
 
 """
 Returns the next move in the opening book

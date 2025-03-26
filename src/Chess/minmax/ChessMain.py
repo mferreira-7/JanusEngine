@@ -2,7 +2,7 @@
 Handles user input and displays the current game state
 """
 import pygame as pg
-import ChessEngine, ChessAI, ChessDQN
+import ChessEngine, ChessAI
 import random
 
 BOARD_WIDTH = BOARD_HEIGHT = 512  #this could be 400
@@ -26,12 +26,12 @@ action = move in validmoves
 Initialising opening books
 """
 
-with open("data/BlackGrandmasterOpenings.csv", "r") as file:
+with open("../data/BlackGrandmasterOpenings.csv", "r") as file:
     bOpenings = []
     for row in file:
         bOpenings.append(row)
 
-with open("data/WhiteGrandmasterOpenings.csv", "r") as file:
+with open("../data/WhiteGrandmasterOpenings.csv", "r") as file:
     wOpenings = []
     for row in file:
         wOpenings.append(row)
@@ -126,10 +126,7 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
         if not gameOver and not humanTurn:
             AIMove = ChessAI.findOpeningBookMove(gameState, bOpening, wOpening, validMoves)
             if AIMove is None:
-                if agent:
-                    AIMove = ChessAI.findAgentMove2(gameState)
-                else:
-                    AIMove = ChessAI.findBestMove(gameState, validMoves)
+                AIMove = ChessAI.findBestMove(gameState, validMoves)
                 if AIMove is None:
                     AIMove = ChessAI.findRandomMove(validMoves)
             gameState.makeMove(AIMove)
