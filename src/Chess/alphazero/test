@@ -18,23 +18,49 @@ def getOpponentValue(value):
     return -value
 
 def getReshapedPolicy(policy, validMoves, xDim, yDim):
+    # NOTE: This function requires a proper mapping from board indices to moves.
     newPolicy = []
-    policy.reshape(xDim,yDim)
+    policy = policy.reshape(xDim, yDim)
     for x in range(xDim):
         for y in range(yDim):
-            if chess.Move(x, y) in validMoves:
+            move = chess.Move(x, y)  # This is only a placeholder; adjust as needed.
+            if move in validMoves:
                 newPolicy.append(policy[x][y])
             else:
                 newPolicy.append(0)
     return newPolicy
 
 def softmax_move_selection(root):
-    """Selects a move using softmax over visit counts."""
+    """Selects a move using softmax over visit counts, with a fallback if no children exist."""
+    if not root.children:
+        valid_moves = root.game.getValidMoves()
+        if not valid_moves:
+            raise ValueError("Terminal state: no valid moves available.")
+        random_move = random.choice(valid_moves)
+        # Create a dummy node for consistency.
+        return Node(root.game, root.args, parent=root, actionTaken=random_move, prior=1.0)
+
     visits = np.array([child.visitCount for child in root.children], dtype=np.float32)
-    exp_visits = np.exp(visits - np.max(visits))  # Prevent overflow
-    probabilities = exp_visits / np.sum(exp_visits)  # Normalize
+    if visits.size == 0 or np.sum(visits) == 0:
+        probabilities = np.ones(len(root.children)) / len(root.children)
+    else:
+        exp_visits = np.exp(visits - np.max(visits))  # Prevent overflow
+        probabilities = exp_visits / np.sum(exp_visits)
 
     return np.random.choice(root.children, p=probabilities)
+
+def get_policy_target_vector(game, children, actionProbabilities):
+    """
+    Creates a fixed-size (4096) target vector for policy.
+    For each child (move) from the current state, the corresponding index is:
+      index = from_square * 64 + to_square.
+    """
+    target = np.zeros(4096, dtype=np.float32)
+    for child, prob in zip(children, actionProbabilities):
+        move = child.actionTaken
+        index = move.from_square * 64 + move.to_square
+        target[index] = prob
+    return target
 
 class Chess:
     def __init__(self):
@@ -52,6 +78,8 @@ class Chess:
         return new_board, not self.player
 
     def applyMove(self, action):
+        if action not in self.getValidMoves():
+            raise ValueError(f"Attempting to push an illegal move: {action}")
         self.board.push(action)
         self.player = not self.player
 
@@ -72,31 +100,27 @@ class Chess:
         outcome = self.board.outcome()
         if outcome is not None:
             if outcome.winner is not None:
-                return 1 if outcome.winner == self.player else -1, True  #normal win/loss case
+                return (1 if outcome.winner == self.player else -1), True
             else:
                 evaluation = self.evaluatePosition()
-                return evaluation, True  #assign a positional value for draws
+                return evaluation, True
         return 0, False
 
     def evaluatePosition(self):
-        """Simple evaluation based on material count"""
         material_score = sum([self.getPieceValue(piece) for piece in self.board.piece_map().values()])
-        return 0.5 * math.tanh(material_score / 10)  # Normalize using tanh
+        return 0.5 * math.tanh(material_score / 10)
 
     def getPieceValue(self, piece):
-        """Assign simple material values"""
         values = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5, chess.QUEEN: 9}
         return values.get(piece.piece_type, 0) * (1 if piece.color == self.player else -1)
 
     def getEncodedBoard(self):
-        encodedBoard = np.zeros((13, 8, 8), dtype=np.float32)  # 12 for pieces, 1 for turn
+        encodedBoard = np.zeros((13, 8, 8), dtype=np.float32)
         piece_map = self.board.piece_map()
-
         for square, piece in piece_map.items():
             piece_idx = (piece.piece_type - 1) + (0 if piece.color == chess.WHITE else 6)
             row, col = divmod(square, 8)
             encodedBoard[piece_idx, row, col] = 1
-
         encodedBoard[12, :, :] = 1 if self.board.turn == chess.WHITE else 0
         return encodedBoard
 
@@ -114,7 +138,7 @@ class ResNet(nn.Module):
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(32 * 8 * 8, 4096)  # Output space for chess moves
+            nn.Linear(32 * 8 * 8, 4096)
         )
         self.valueHead = nn.Sequential(
             nn.Conv2d(numHidden, 3, kernel_size=3, padding=1),
@@ -145,47 +169,8 @@ class ResBlock(nn.Module):
         x = self.bn2(self.conv2(x))
         return F.relu(x + residual)
 
-'''
-# Test encoding
-chessGame = Chess()
-chessGame.applyMove(getMoveFromUCI("f2f3"))
-chessGame.applyMove(getMoveFromUCI("e7e6"))
-chessGame.applyMove(getMoveFromUCI("g2g4"))
-chessGame.applyMove(getMoveFromUCI("d8h5"))
-encodedBoard = chessGame.getEncodedBoard()
-print(encodedBoard.shape)  # Should be (13, 8, 8)
-
-# Test neural network forward pass
-tensorBoard = torch.tensor(encodedBoard).unsqueeze(0)
-
-model = ResNet()
-model.load_state_dict(torch.load("model_2.pt"))
-model.eval()
-
-policy, value = model(tensorBoard)
-print(policy.shape, value.shape)  # Expect (1, 4096) and (1, 1)
-
-# Convert policy to numpy and reshape to (64, 64)
-policy_reshaped = policy.detach().cpu().numpy().reshape(64, 64)
-
-# Get all valid moves
-valid_moves = chessGame.getValidMoves()
-
-# Extract policy values for valid moves
-move_probs = [policy_reshaped[m.from_square][m.to_square] for m in valid_moves]
-
-# Plot
-plt.figure(figsize=(10, 5))
-plt.bar(range(len(valid_moves)), move_probs)
-plt.xticks(range(len(valid_moves)), [m.uci() for m in valid_moves], rotation=90)
-plt.ylabel("Probability")
-plt.title("Move Probabilities from MCTS Policy Head")
-plt.show()
-
-'''
-
 class Node:
-    def __init__(self, game, args, parent=None, actionTaken=None, prior = 0):
+    def __init__(self, game, args, parent=None, actionTaken=None, prior=0):
         self.game = game
         self.args = args
         self.parent = parent
@@ -203,30 +188,24 @@ class Node:
         return bestChild
 
     def getUCB(self, child):
-        if child.visitCount == 0:
-            qValue = 0
-        else:
-            qValue = 1 - ((child.valueSum / child.visitCount) + 1) / 2
+        qValue = 0 if child.visitCount == 0 else 1 - ((child.valueSum / child.visitCount) + 1) / 2
         return qValue + self.args["C"] * (math.sqrt(self.visitCount) / (child.visitCount + 1)) * child.prior
 
     def expand(self, policy):
         for (action, prob) in policy:
-            if prob > 0 :
+            if prob > 0:
                 new_board, new_player = self.game.getNextState(action)
                 new_game = Chess()
                 new_game.board = new_board
                 new_game.player = new_player
-
-                child = Node(new_game, self.args, self, action, prob)
+                child = Node(new_game, self.args, parent=self, actionTaken=action, prior=prob)
                 self.children.append(child)
 
     def backpropagate(self, value):
         self.valueSum += value
         self.visitCount += 1
-
-        value = getOpponentValue(value)
         if self.parent is not None:
-            self.parent.backpropagate(value)
+            self.parent.backpropagate(getOpponentValue(value))
 
 class MCTS:
     def __init__(self, game, args, model):
@@ -239,32 +218,24 @@ class MCTS:
         root = Node(self.game, self.args)
         for _ in range(self.args["numSearches"]):
             node = root
-            while node.isFullyExpanded():
+            while node.isFullyExpanded() and node.children:
                 node = node.select()
 
             value, isTerminal = node.game.getValueAndTerminated()
             value = getOpponentValue(value)
-
             if not isTerminal:
-                policy, value = self.model(
+                policy, value_tensor = self.model(
                     torch.tensor(node.game.getEncodedBoard()).unsqueeze(0)
                 )
                 validMoves = node.game.getValidMoves()
                 policyReshaped = policy.detach().cpu().numpy().reshape(64, 64)
                 moveProbs = [policyReshaped[m.from_square][m.to_square] for m in validMoves]
-                policy = list(zip(validMoves, moveProbs))
-
-                value = value.item()
-                node.expand(policy)
-
+                policyDistribution = list(zip(validMoves, moveProbs))
+                value = value_tensor.item()
+                node.expand(policyDistribution)
             node.backpropagate(value)
-
-        if len(root.children) == 0:
-            print("no children")
-            print(root.game.board)
-            print(root.game.getValidMoves())
-        bestNode = softmax_move_selection(root)  # New, more balanced move selection
-        return bestNode.actionTaken, bestNode.visitCount, [node for node in root.children]
+        bestNode = softmax_move_selection(root)
+        return bestNode.actionTaken, bestNode.visitCount, root.children
 
 class AlphaZero:
     def __init__(self, model, optimizer, game, args):
@@ -277,76 +248,69 @@ class AlphaZero:
     def selfPlay(self):
         memory = []
         state = Chess()
-
         while True:
             neutralGame = Chess()
-            neutralGame.board = state.board
+            neutralGame.board = state.board.copy()
             neutralGame.player = not state.player
-            search = MCTS(neutralGame, self.args, self.model).search()
-            nodeVisitCounts = [node.visitCount for node in search[2]]
-            actionProbabilities = [visitCount / sum(nodeVisitCounts) for visitCount in nodeVisitCounts] #maybe create mcts object here
-
-            memory.append((neutralGame, actionProbabilities, state.player))
-
-            chosen = np.random.choice(search[2], p=actionProbabilities)
-            action = chosen.actionTaken
-
-            state.applyMove(action)
-
+            action, visitCount, children = MCTS(neutralGame, self.args, self.model).search()
+            nodeVisitCounts = [child.visitCount for child in children]
+            total_visits = sum(nodeVisitCounts)
+            if total_visits == 0:
+                actionProbabilities = [1 / len(children)] * len(children)
+            else:
+                actionProbabilities = [vc / total_visits for vc in nodeVisitCounts]
+            # Build a fixed target vector for the policy head.
+            policyTarget = get_policy_target_vector(neutralGame, children, actionProbabilities)
+            memory.append((neutralGame.getEncodedBoard(), policyTarget, state.player))
+            chosen = np.random.choice(children, p=actionProbabilities)
+            chosen_move = chosen.actionTaken
+            try:
+                state.applyMove(chosen_move)
+            except ValueError as e:
+                print("Illegal move attempted:", e)
+                break
             value, isTerminal = state.getValueAndTerminated()
-
             if isTerminal:
                 returnMemory = []
-                for histNeutralState, histActionProbabilities, histPlayer in memory:
+                for histEncodedBoard, histPolicyTarget, histPlayer in memory:
                     histOutcome = value if histPlayer == state.player else getOpponentValue(value)
-                    returnMemory.append((
-                        histNeutralState.getEncodedBoard(),
-                        histActionProbabilities,
-                        histOutcome
-                    ))
+                    returnMemory.append((histEncodedBoard, histPolicyTarget, histOutcome))
                 return returnMemory
-
             state.player = not state.player
 
     def train(self, memory):
         random.shuffle(memory)
         for batchIdx in range(0, len(memory), self.args["batchSize"]):
-            sample = memory[batchIdx:min(len(memory)-1, batchIdx+self.args["batchSize"])]
-            state, policyTargets, valueTargets = zip(*sample) #transpose lists
-
-            state, policyTargets, valueTargets = np.array(state), np.array(policyTargets), np.array(valueTargets).reshape(-1, 1)
-
-            state = torch.tensor(state, dtype=torch.float32)
-            policyTargets = torch.tensor(policyTargets, dtype=torch.float32)
-            valueTargets = torch.tensor(valueTargets, dtype=torch.float32)
-
-            outPolicy, outValue = self.model(state)
-
-            policyLoss = F.cross_entropy(outPolicy, policyTargets)
-            valueLoss = F.mse_loss(outValue, valueTargets)
-            loss = policyLoss + valueLoss
-
+            batch = memory[batchIdx:batchIdx+self.args["batchSize"]]
+            if len(batch) == 0:
+                continue
+            states, policyTargets, valueTargets = zip(*batch)
+            states = torch.tensor(np.array(states), dtype=torch.float32)
+            policyTargets = torch.tensor(np.array(policyTargets), dtype=torch.float32)
+            valueTargets = torch.tensor(np.array(valueTargets).reshape(-1, 1), dtype=torch.float32)
+            outPolicy, outValue = self.model(states)
+            outPolicy = outPolicy.view(-1, 4096)
+            log_probs = F.log_softmax(outPolicy, dim=1)
+            policy_loss = -torch.mean(torch.sum(policyTargets * log_probs, dim=1))
+            value_loss = F.mse_loss(outValue, valueTargets)
+            loss = policy_loss + value_loss
             self.optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
+            self.optimizer.step()
 
     def learn(self):
         for iteration in range(self.args["numIterations"]):
             memory = []
-
             self.model.eval()
-            for selfPlayIteration in trange(self.args["numSelfPlayIterations"]):
-                memory += self.selfPlay() #root.chilren has size 0
-                print("sp")
-
+            for _ in trange(self.args["numSelfPlayIterations"], desc=f"Self-play iteration {iteration}"):
+                memory += self.selfPlay()
             self.model.train()
-            for epoch in trange(self.args["numEpochs"]):
-                self.train(memory) #ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (64,) + inhomogeneous part.
-                print("t")
-
+            for _ in trange(self.args["numEpochs"], desc=f"Training epoch {iteration}"):
+                self.train(memory)
             torch.save(self.model.state_dict(), f"model_{iteration}.pt")
             torch.save(self.optimizer.state_dict(), f"optimizer_{iteration}.pt")
 
+# Initialize model, optimizer, game, and hyperparameters.
 model = ResNet()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 chessGame = Chess()
@@ -354,40 +318,38 @@ args = {
     "C": 2,
     "numSearches": 60,
     "numIterations": 3,
-    "numSelfPlayIterations": 5,
+    "numSelfPlayIterations": 500,
     "numEpochs": 4,
     "batchSize": 64
 }
 alphaZero = AlphaZero(model, optimizer, chessGame, args)
 alphaZero.learn()
 
-'''chessGame = Chess()
+'''
+# Uncomment below to play interactively with MCTS.
+chessGame = Chess()
 args = {"C": 2, "numSearches": 1000}
 model = ResNet()
 mcts = MCTS(chessGame, args, model)
-
 movesC = 1
-while True:#maybe implement a one error allowance flag
+while True:
     print(chessGame.board, "\n")
     if chessGame.player == chess.WHITE:
         try:
-            #move = random.choice(chessGame.getValidMoves())
             move = getMoveFromUCI(input("Enter move: "))
             if move not in chessGame.getValidMoves():
                 raise ValueError("Invalid move")
             print(f"[{movesC}] White move:", move.uci())
-        except:
-            print("Action not valid\n")
+        except Exception as e:
+            print("Action not valid:", e, "\n")
             continue
     else:
-        move = mcts.search()
-        print(f"[{movesC}] Black move:", move[0].uci(), "Move Value:", move[1], f"Possible Values: {[x.visitCount for x in move[2]]}")
-        move = move[0]
-
+        action, visitCount, children = mcts.search()
+        print(f"[{movesC}] Black move:", action.uci(), "Move Value:", visitCount, f"Possible Values: {[child.visitCount for child in children]}")
+        move = action
     chessGame.applyMove(move)
     movesC += 1
     value, isTerminal = chessGame.getValueAndTerminated()
-
     if isTerminal:
         print(chessGame.board)
         print("Game Over. Winner:", "Black" if value == 1 else "White" if value == -1 else "Draw")
