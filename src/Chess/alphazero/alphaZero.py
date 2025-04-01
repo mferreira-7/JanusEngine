@@ -17,17 +17,6 @@ def getMoveFromUCI(moveString):
 def getOpponentValue(value):
     return -value
 
-def getReshapedPolicy(policy, validMoves, xDim, yDim):
-    newPolicy = []
-    policy.reshape(xDim,yDim)
-    for x in range(xDim):
-        for y in range(yDim):
-            if chess.Move(x, y) in validMoves:
-                newPolicy.append(policy[x][y])
-            else:
-                newPolicy.append(0)
-    return newPolicy
-
 def softmax_move_selection(root):
     """Selects a move using softmax over visit counts."""
     visits = np.array([child.visitCount for child in root.children], dtype=np.float32)
@@ -35,6 +24,19 @@ def softmax_move_selection(root):
     probabilities = exp_visits / np.sum(exp_visits)  # Normalize
 
     return np.random.choice(root.children, p=probabilities)
+
+def get_policy_target_vector(children, actionProbabilities):
+    """
+    Creates a fixed-size (4096) target vector for the policy head.
+    For each child (move) from the current state, the corresponding index is:
+      index = from_square * 64 + to_square.
+    """
+    target = np.zeros(4096, dtype=np.float32)
+    for child, prob in zip(children, actionProbabilities):
+        move = child.actionTaken
+        index = move.from_square * 64 + move.to_square
+        target[index] = prob
+    return target
 
 class Chess:
     def __init__(self):
@@ -68,12 +70,14 @@ class Chess:
             return outcome.winner
         return None
 
-    def getValueAndTerminated(self):
+    def getValueAndTerminated(self): #TODO: NOT OVER BUT ISTERMINAL
         outcome = self.board.outcome()
         if outcome is not None:
             if outcome.winner is not None:
+                #print("winner")
                 return 1 if outcome.winner == self.player else -1, True  #normal win/loss case
             else:
+                #print("not winner")
                 evaluation = self.evaluatePosition()
                 return evaluation, True  #assign a positional value for draws
         return 0, False
@@ -145,45 +149,6 @@ class ResBlock(nn.Module):
         x = self.bn2(self.conv2(x))
         return F.relu(x + residual)
 
-'''
-# Test encoding
-chessGame = Chess()
-chessGame.applyMove(getMoveFromUCI("f2f3"))
-chessGame.applyMove(getMoveFromUCI("e7e6"))
-chessGame.applyMove(getMoveFromUCI("g2g4"))
-chessGame.applyMove(getMoveFromUCI("d8h5"))
-encodedBoard = chessGame.getEncodedBoard()
-print(encodedBoard.shape)  # Should be (13, 8, 8)
-
-# Test neural network forward pass
-tensorBoard = torch.tensor(encodedBoard).unsqueeze(0)
-
-model = ResNet()
-model.load_state_dict(torch.load("model_2.pt"))
-model.eval()
-
-policy, value = model(tensorBoard)
-print(policy.shape, value.shape)  # Expect (1, 4096) and (1, 1)
-
-# Convert policy to numpy and reshape to (64, 64)
-policy_reshaped = policy.detach().cpu().numpy().reshape(64, 64)
-
-# Get all valid moves
-valid_moves = chessGame.getValidMoves()
-
-# Extract policy values for valid moves
-move_probs = [policy_reshaped[m.from_square][m.to_square] for m in valid_moves]
-
-# Plot
-plt.figure(figsize=(10, 5))
-plt.bar(range(len(valid_moves)), move_probs)
-plt.xticks(range(len(valid_moves)), [m.uci() for m in valid_moves], rotation=90)
-plt.ylabel("Probability")
-plt.title("Move Probabilities from MCTS Policy Head")
-plt.show()
-
-'''
-
 class Node:
     def __init__(self, game, args, parent=None, actionTaken=None, prior = 0):
         self.game = game
@@ -233,6 +198,7 @@ class MCTS:
         self.game = game
         self.args = args
         self.model = model
+        self.extended = False
 
     @torch.no_grad()
     def search(self):
@@ -260,10 +226,11 @@ class MCTS:
             node.backpropagate(value)
 
         if len(root.children) == 0:
-            print("no children")
-            print(root.game.board)
-            print(root.game.getValidMoves())
+            if len(root.game.getValidMoves()) > 0:
+                root.children.extend([Node(self.game, self.args, root, move, 0) for move in root.game.getValidMoves()])
+
         bestNode = softmax_move_selection(root)  # New, more balanced move selection
+
         return bestNode.actionTaken, bestNode.visitCount, [node for node in root.children]
 
 class AlphaZero:
@@ -282,25 +249,39 @@ class AlphaZero:
             neutralGame = Chess()
             neutralGame.board = state.board
             neutralGame.player = not state.player
+
             search = MCTS(neutralGame, self.args, self.model).search()
-            nodeVisitCounts = [node.visitCount for node in search[2]]
-            actionProbabilities = [visitCount / sum(nodeVisitCounts) for visitCount in nodeVisitCounts] #maybe create mcts object here
+            children = search[2]
+            nodeVisitCounts = [child.visitCount for child in children]
+            total_visits = sum(nodeVisitCounts)
 
-            memory.append((neutralGame, actionProbabilities, state.player))
+            if total_visits == 0:
+                actionProbabilities = [1 / len(children)] * len(children)
+            else:
+                actionProbabilities = [vc / total_visits for vc in nodeVisitCounts]
 
-            chosen = np.random.choice(search[2], p=actionProbabilities)
+            # Convert variable-length move list into a fixed 4096-dimensional vector
+            policyTarget = get_policy_target_vector(children, actionProbabilities)
+
+            # Store the encoded board, fixed policy target, and current player
+            memory.append((neutralGame.getEncodedBoard(), policyTarget, state.player))
+
+            chosen = np.random.choice(children, p=actionProbabilities)
             action = chosen.actionTaken
 
             state.applyMove(action)
+            print("action made", action)
 
             value, isTerminal = state.getValueAndTerminated()
 
             if isTerminal:
+                print("isTerminal", chess.WHITE if state.player else chess.BLACK)
+                print(state.board)
                 returnMemory = []
                 for histNeutralState, histActionProbabilities, histPlayer in memory:
                     histOutcome = value if histPlayer == state.player else getOpponentValue(value)
                     returnMemory.append((
-                        histNeutralState.getEncodedBoard(),
+                        histNeutralState,
                         histActionProbabilities,
                         histOutcome
                     ))
@@ -312,6 +293,8 @@ class AlphaZero:
         random.shuffle(memory)
         for batchIdx in range(0, len(memory), self.args["batchSize"]):
             sample = memory[batchIdx:min(len(memory)-1, batchIdx+self.args["batchSize"])]
+            if not sample:
+                continue
             state, policyTargets, valueTargets = zip(*sample) #transpose lists
 
             state, policyTargets, valueTargets = np.array(state), np.array(policyTargets), np.array(valueTargets).reshape(-1, 1)
@@ -322,13 +305,16 @@ class AlphaZero:
 
             outPolicy, outValue = self.model(state)
 
-            policyLoss = F.cross_entropy(outPolicy, policyTargets)
+            log_probs = F.log_softmax(outPolicy, dim=1)
+            policyLoss = -torch.mean(torch.sum(policyTargets * log_probs, dim=1))
+
+            #policyLoss = F.cross_entropy(outPolicy, policyTargets)
             valueLoss = F.mse_loss(outValue, valueTargets)
             loss = policyLoss + valueLoss
 
             self.optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
+            self.optimizer.step()
 
     def learn(self):
         for iteration in range(self.args["numIterations"]):
@@ -336,16 +322,15 @@ class AlphaZero:
 
             self.model.eval()
             for selfPlayIteration in trange(self.args["numSelfPlayIterations"]):
-                memory += self.selfPlay() #root.chilren has size 0
-                print("sp")
+                memory += self.selfPlay()
 
             self.model.train()
             for epoch in trange(self.args["numEpochs"]):
-                self.train(memory) #ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (64,) + inhomogeneous part.
-                print("t")
+                self.train(memory)
 
             torch.save(self.model.state_dict(), f"model_{iteration}.pt")
             torch.save(self.optimizer.state_dict(), f"optimizer_{iteration}.pt")
+
 
 model = ResNet()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
@@ -354,14 +339,48 @@ args = {
     "C": 2,
     "numSearches": 60,
     "numIterations": 3,
-    "numSelfPlayIterations": 5,
+    "numSelfPlayIterations": 3,
     "numEpochs": 4,
     "batchSize": 64
 }
 alphaZero = AlphaZero(model, optimizer, chessGame, args)
 alphaZero.learn()
 
-'''chessGame = Chess()
+# Test encoding
+chessGame = Chess()
+chessGame.applyMove(getMoveFromUCI("f2f3"))
+chessGame.applyMove(getMoveFromUCI("e7e6"))
+chessGame.applyMove(getMoveFromUCI("g2g4"))
+encodedBoard = chessGame.getEncodedBoard() 
+#EXPECT D8H4
+print(encodedBoard.shape)  # Should be (13, 8, 8)
+
+# Test neural network forward pass
+tensorBoard = torch.tensor(encodedBoard).unsqueeze(0)
+model = ResNet()
+for iter in range(3):
+    model.load_state_dict(torch.load(f"model_{iter}.pt"))
+    model.eval()
+    policy, value = model(tensorBoard)
+    print(policy.shape, value.shape)  # Expect (1, 4096) and (1, 1)
+    # Convert policy to numpy and reshape to (64, 64)
+    policy_reshaped = policy.detach().cpu().numpy().reshape(64, 64)
+    # Get all valid moves
+    valid_moves = chessGame.getValidMoves()
+    # Extract policy values for valid moves
+    move_probs = [policy_reshaped[m.from_square][m.to_square] for m in valid_moves]
+
+    # Plot
+    plt.figure(figsize=(10, 5))
+    plt.bar(range(len(valid_moves)), sorted(move_probs))
+    plt.xticks(range(len(valid_moves)), [m.uci() for m in valid_moves], rotation=90)
+    plt.ylabel("Probability")
+    plt.title(f"Move Probabilities from MCTS Policy Head: {iter}")
+    plt.show()
+
+
+'''
+chessGame = Chess()
 args = {"C": 2, "numSearches": 1000}
 model = ResNet()
 mcts = MCTS(chessGame, args, model)
