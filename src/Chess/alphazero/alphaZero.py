@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import trange
 
+
 def getInitialState():
     return chess.Board()
 
@@ -105,8 +106,9 @@ class Chess:
         return encodedBoard
 
 class ResNet(nn.Module):
-    def __init__(self, numResBlocks=4, numHidden=64):
+    def __init__(self, device, numResBlocks=4, numHidden=64):
         super().__init__()
+        self.device = device
         self.startBlock = nn.Sequential(
             nn.Conv2d(13, numHidden, kernel_size=3, padding=1),
             nn.BatchNorm2d(numHidden),
@@ -128,6 +130,7 @@ class ResNet(nn.Module):
             nn.Linear(3 * 8 * 8, 1),
             nn.Tanh()
         )
+        self.to(device)
 
     def forward(self, x):
         x = self.startBlock(x)
@@ -150,7 +153,7 @@ class ResBlock(nn.Module):
         return F.relu(x + residual)
 
 class Node:
-    def __init__(self, game, args, parent=None, actionTaken=None, prior = 0):
+    def __init__(self, game, args, parent=None, actionTaken=None, prior = 0, visitCount = 0):
         self.game = game
         self.args = args
         self.parent = parent
@@ -202,7 +205,21 @@ class MCTS:
 
     @torch.no_grad()
     def search(self):
-        root = Node(self.game, self.args)
+        root = Node(self.game, self.args, visitCount = 1)
+
+        policy, value = self.model(
+            torch.tensor(root.game.getEncodedBoard(), device=self.model.device).unsqueeze(0)
+        )
+        policyReshaped = policy.detach().cpu().numpy().reshape(64, 64)
+        policyReshaped = (1 - self.args["dirichletEpsilon"]) * policyReshaped + self.args["dirichletEpsilon"] * np.random.dirichlet([self.args["dirichletAlpha"]] * len(policyReshaped))
+
+        validMoves = root.game.getValidMoves()
+        moveProbs = [policyReshaped[m.from_square][m.to_square] for m in validMoves]
+
+        policy = list(zip(validMoves, moveProbs))
+
+        root.expand(policy)
+
         for _ in range(self.args["numSearches"]):
             node = root
             while node.isFullyExpanded():
@@ -213,7 +230,7 @@ class MCTS:
 
             if not isTerminal:
                 policy, value = self.model(
-                    torch.tensor(node.game.getEncodedBoard()).unsqueeze(0)
+                    torch.tensor(node.game.getEncodedBoard(), device=self.model.device).unsqueeze(0)
                 )
                 validMoves = node.game.getValidMoves()
                 policyReshaped = policy.detach().cpu().numpy().reshape(64, 64)
@@ -221,13 +238,13 @@ class MCTS:
                 policy = list(zip(validMoves, moveProbs))
 
                 value = value.item()
+
                 node.expand(policy)
 
             node.backpropagate(value)
 
-        if len(root.children) == 0:
-            if len(root.game.getValidMoves()) > 0:
-                root.children.extend([Node(self.game, self.args, root, move, 0) for move in root.game.getValidMoves()])
+        if len(root.children) == 0 and len(root.game.getValidMoves()) > 0:
+            root.children.extend([Node(self.game, self.args, root, move, 0) for move in root.game.getValidMoves()])
 
         bestNode = softmax_move_selection(root)  # New, more balanced move selection
 
@@ -266,11 +283,12 @@ class AlphaZero:
             # Store the encoded board, fixed policy target, and current player
             memory.append((neutralGame.getEncodedBoard(), policyTarget, state.player))
 
+            actionProbabilitiesTemperature = [prob ** (1 / self.args["temperature"]) for prob in actionProbabilities]
             chosen = np.random.choice(children, p=actionProbabilities)
             action = chosen.actionTaken
 
             state.applyMove(action)
-            print("action made", action)
+            #print("move made", action)
 
             value, isTerminal = state.getValueAndTerminated()
 
@@ -299,9 +317,9 @@ class AlphaZero:
 
             state, policyTargets, valueTargets = np.array(state), np.array(policyTargets), np.array(valueTargets).reshape(-1, 1)
 
-            state = torch.tensor(state, dtype=torch.float32)
-            policyTargets = torch.tensor(policyTargets, dtype=torch.float32)
-            valueTargets = torch.tensor(valueTargets, dtype=torch.float32)
+            state = torch.tensor(state, dtype=torch.float32, device=self.model.device)
+            policyTargets = torch.tensor(policyTargets, dtype=torch.float32, device=self.model.device)
+            valueTargets = torch.tensor(valueTargets, dtype=torch.float32, device=self.model.device)
 
             outPolicy, outValue = self.model(state)
 
@@ -317,7 +335,7 @@ class AlphaZero:
             self.optimizer.step()
 
     def learn(self):
-        for iteration in range(self.args["numIterations"]):
+        for iteration in trange(self.args["numIterations"]):
             memory = []
 
             self.model.eval()
@@ -331,18 +349,23 @@ class AlphaZero:
             torch.save(self.model.state_dict(), f"model_{iteration}.pt")
             torch.save(self.optimizer.state_dict(), f"optimizer_{iteration}.pt")
 
-
-model = ResNet()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = ResNet(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
 chessGame = Chess()
+
 args = {
     "C": 2,
-    "numSearches": 60,
-    "numIterations": 3,
-    "numSelfPlayIterations": 3,
-    "numEpochs": 4,
-    "batchSize": 64
+    "numSearches": 25, #for me (20-30) optimally (100 -> 200)
+    "numIterations": 3, #for me 3 optimally (50 -> 100)
+    "numSelfPlayIterations": 3, #for me 3 optimally (25 -> 50)
+    "numEpochs": 3, #for me 3 optimally (10 -> 20)
+    "batchSize": 8, #for me 16 or 32 optimally 64
+    "temperature": 1.25, #exploitation vs exploration
+    "dirichletEpsilon": 0.25,
+    "dirichletAlpha": 0.3
 }
+
 alphaZero = AlphaZero(model, optimizer, chessGame, args)
 alphaZero.learn()
 
@@ -352,17 +375,17 @@ chessGame.applyMove(getMoveFromUCI("f2f3"))
 chessGame.applyMove(getMoveFromUCI("e7e6"))
 chessGame.applyMove(getMoveFromUCI("g2g4"))
 encodedBoard = chessGame.getEncodedBoard() 
-#EXPECT D8H4
-print(encodedBoard.shape)  # Should be (13, 8, 8)
+print(chessGame.board)  # Should be (13, 8, 8)
 
 # Test neural network forward pass
-tensorBoard = torch.tensor(encodedBoard).unsqueeze(0)
-model = ResNet()
-for iter in range(3):
-    model.load_state_dict(torch.load(f"model_{iter}.pt"))
+tensorBoard = torch.tensor(encodedBoard, device=device).unsqueeze(0)
+model = ResNet(device)
+for iter in range(args["numIterations"]):
+    model.load_state_dict(torch.load(f"model_{iter}.pt", map_location=device))
     model.eval()
     policy, value = model(tensorBoard)
     print(policy.shape, value.shape)  # Expect (1, 4096) and (1, 1)
+    print(value.item())
     # Convert policy to numpy and reshape to (64, 64)
     policy_reshaped = policy.detach().cpu().numpy().reshape(64, 64)
     # Get all valid moves
@@ -377,7 +400,6 @@ for iter in range(3):
     plt.ylabel("Probability")
     plt.title(f"Move Probabilities from MCTS Policy Head: {iter}")
     plt.show()
-
 
 '''
 chessGame = Chess()
