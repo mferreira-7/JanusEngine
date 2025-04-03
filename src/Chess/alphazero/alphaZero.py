@@ -8,6 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import trange
 
+def get_move_index(move):
+    return move.from_square * 64 + move.to_square
 
 def getInitialState():
     return chess.Board()
@@ -182,7 +184,7 @@ class Node:
             if prob > 0 :
                 new_board, new_player = self.game.getNextState(action)
                 new_game = Chess()
-                new_game.board = new_board
+                new_game.board = new_board.copy()
                 new_game.player = new_player
 
                 child = Node(new_game, self.args, self, action, prob)
@@ -210,11 +212,11 @@ class MCTS:
         policy, value = self.model(
             torch.tensor(root.game.getEncodedBoard(), device=self.model.device).unsqueeze(0)
         )
-        policyReshaped = policy.detach().cpu().numpy().reshape(64, 64)
+        policyReshaped = policy.detach().cpu().numpy().flatten()
         policyReshaped = (1 - self.args["dirichletEpsilon"]) * policyReshaped + self.args["dirichletEpsilon"] * np.random.dirichlet([self.args["dirichletAlpha"]] * len(policyReshaped))
 
         validMoves = root.game.getValidMoves()
-        moveProbs = [policyReshaped[m.from_square][m.to_square] for m in validMoves]
+        moveProbs = [policyReshaped[get_move_index(m)] for m in validMoves]
 
         policy = list(zip(validMoves, moveProbs))
 
@@ -288,7 +290,7 @@ class AlphaZero:
             action = chosen.actionTaken
 
             state.applyMove(action)
-            #print("move made", action)
+            print("move made", action)
 
             value, isTerminal = state.getValueAndTerminated()
 
@@ -360,7 +362,7 @@ args = {
     "numIterations": 3, #for me 3 optimally (50 -> 100)
     "numSelfPlayIterations": 3, #for me 3 optimally (25 -> 50)
     "numEpochs": 3, #for me 3 optimally (10 -> 20)
-    "batchSize": 8, #for me 16 or 32 optimally 64
+    "batchSize": 4, #for me 16 or 32 optimally 64
     "temperature": 1.25, #exploitation vs exploration
     "dirichletEpsilon": 0.25,
     "dirichletAlpha": 0.3
