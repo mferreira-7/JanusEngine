@@ -1,5 +1,6 @@
 import random
-import ChessEngine
+import ChessEngine, AlphaZero
+
 
 """
 Possible improvements:
@@ -77,6 +78,35 @@ DEPTH = 1 #maximum depth, must be (>2) for realistic bot gameplay (Can be kept a
 transposition_table = {}  #global dictionary to store evaluated positions
 
 """
+Turns gameState.board into FEN string
+"""
+
+def getFen(board):
+    print("GOT FEN")
+    return "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+"""
+Uses AZ to find best move from FEN string of a gameState.board
+"""
+
+def findAlphaZeroMove(gameState, validMoves):
+    print("FIND AZ")
+    FEN = getFen(gameState.board)
+    moveUCI = AlphaZero.getAzMove(FEN, 9) #modelStrength = (0...9) #a7a5
+    moveUCI = moveUCI[:4]
+    moveParts = moveUCI.replace(moveUCI[1], f"{moveUCI[1]} ")
+    moveParts = moveParts.split(" ")
+    startingSqr = (ChessEngine.Move.ranksToRows[moveParts[0][1]],
+                   ChessEngine.Move.filesToCols[moveParts[0][0]])  # e7 / 4,1
+    endingSqr = (ChessEngine.Move.ranksToRows[moveParts[1][1]],
+                 ChessEngine.Move.filesToCols[moveParts[1][0]])  # e5 / 4,3
+    print(f"AZ MOVE PICKED {moveParts[0], moveParts[1]}")
+    for move in validMoves:
+        if move.__eq__(ChessEngine.Move(startingSqr, endingSqr, gameState.board)):
+            print(f"FOUND AZ MOVE - {move.getChessNotation()}")
+            return move
+    return None
+"""
 Returns the next move in the opening book
 """
 
@@ -88,8 +118,10 @@ def findOpeningBookMove(gameState, blackString, whiteString, validMoves):
     if len(gameState.moveLog) in whiteArray:
         chosenMove = whiteMoves[whiteArray.index(len(gameState.moveLog))] #e7 -> e5
         chosenMoveParts = chosenMove.split(" -> ")#e7,e5
-        startingSqr = (ChessEngine.Move.ranksToRows[chosenMoveParts[0][1]], ChessEngine.Move.filesToCols[chosenMoveParts[0][0]])#e7 / 4,1
-        endingSqr = (ChessEngine.Move.ranksToRows[chosenMoveParts[1][1]], ChessEngine.Move.filesToCols[chosenMoveParts[1][0]])#e5 / 4,3
+        startingSqr = (ChessEngine.Move.ranksToRows[chosenMoveParts[0][1]],
+                       ChessEngine.Move.filesToCols[chosenMoveParts[0][0]])#e7 / 4,1
+        endingSqr = (ChessEngine.Move.ranksToRows[chosenMoveParts[1][1]],
+                     ChessEngine.Move.filesToCols[chosenMoveParts[1][0]])#e5 / 4,3
         for move in validMoves:
             if move.__eq__(ChessEngine.Move(startingSqr, endingSqr, gameState.board)):
                 return move

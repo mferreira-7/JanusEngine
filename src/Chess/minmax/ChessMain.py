@@ -1,6 +1,8 @@
 """
 Handles user input and displays the current game state
 """
+import os.path
+
 import pygame as pg
 import ChessEngine, ChessAI
 import random
@@ -13,25 +15,20 @@ SQ_SIZE = BOARD_HEIGHT // DIMENSION
 MAX_FPS = 15  #possible animations
 IMAGES = {}
 
-""" (ASSUMED)
-reset = ChessEngine.GameState(), basically what the r key does
-reward = either ChessAi.scoreMove or ChessAi.scoreBoard (after the move)
-makeMove(action) = takes an action and computes the move the model has selected, may overload the makeMove function with multipledispatch
-game = Chessmain
-endstate = gameOver - checkmate or stalemate
-action = move in validmoves
-"""
-
 """
 Initialising opening books
 """
+root = os.path.dirname(os.path.dirname(__file__))
 
-with open("../data/BlackGrandmasterOpenings.csv", "r") as file:
+bCSVpath = os.path.join(root, "data", "BlackGrandmasterOpenings.csv")
+wCSVpath = os.path.join(root, "data", "WhiteGrandmasterOpenings.csv")
+
+with open(bCSVpath, "r") as file:
     bOpenings = []
     for row in file:
         bOpenings.append(row)
 
-with open("../data/WhiteGrandmasterOpenings.csv", "r") as file:
+with open(wCSVpath, "r") as file:
     wOpenings = []
     for row in file:
         wOpenings.append(row)
@@ -115,10 +112,10 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
                     gameOver = False
                 if event.key == pg.K_1:
                     playerOne = not playerOne
-                    print("White is now a", "human" if not playerOne else "bot")
+                    print("White is now a", "human" if playerOne else "bot")
                 if event.key == pg.K_2:
                     playerTwo = not playerTwo
-                    print("Black is now a", "human" if not playerOne else "bot")
+                    print("Black is now a", "human" if playerTwo else "bot")
                 if event.key == pg.K_3:
                     agent = not agent
                     print("Agent", "activated" if agent else "deactivated")
@@ -126,7 +123,14 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
         if not gameOver and not humanTurn:
             AIMove = ChessAI.findOpeningBookMove(gameState, bOpening, wOpening, validMoves)
             if AIMove is None:
-                AIMove = ChessAI.findBestMove(gameState, validMoves)
+                if agent:
+                    print("GET AGENT MOVE")
+                    AIMove = ChessAI.findAlphaZeroMove(gameState, validMoves)
+                    if AIMove is None:
+                        print("NONE")
+                        AIMove = ChessAI.findBestMove(gameState, validMoves)
+                else:
+                    AIMove = ChessAI.findBestMove(gameState, validMoves)
                 if AIMove is None:
                     AIMove = ChessAI.findRandomMove(validMoves)
             gameState.makeMove(AIMove)
@@ -141,14 +145,11 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
             gameOver = True
             if gameState.whiteToMove:
                 drawEndGameText(screen, "Black wins by checkmate")
-                print("black reward is", gameState.reward, "white reward is", -gameState.reward)
             else:
                 drawEndGameText(screen, "White wins by checkmate")
-                print("white reward is", gameState.reward, "black reward is", -gameState.reward)
         elif gameState.stalemate:
             gameOver = True
             drawEndGameText(screen, "Stalemate")
-            print("reward is", gameState.reward)
         clock.tick(MAX_FPS)
         pg.display.flip()
 
