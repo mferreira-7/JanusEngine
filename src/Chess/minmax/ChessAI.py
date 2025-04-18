@@ -81,9 +81,43 @@ transposition_table = {}  #global dictionary to store evaluated positions
 Turns gameState.board into FEN string
 """
 
-def getFen(board):
-    print("GOT FEN")
-    return "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+def getFen(gameState):
+    fen = ""
+    for row in range(8):
+        emptyCount = 0
+        for col in range(8):
+            piece = gameState.board[row][col]
+            if piece == "--":
+                emptyCount += 1
+            else:
+                if emptyCount > 0:
+                    fen += str(emptyCount)
+                    emptyCount = 0
+                pieceType = piece[0]
+                pieceColor = piece[1]
+                fen += pieceType.upper() if pieceColor == "W" else pieceType.lower()
+        if emptyCount > 0:
+            fen += str(emptyCount)
+        if row < 7:
+            fen += "/"
+    fen += " w " if gameState.whiteToMove else " b "
+    castlingRights = ""
+    if gameState.currentCastlingRights.wks: castlingRights += "K"
+    if gameState.currentCastlingRights.wqs: castlingRights += "Q"
+    if gameState.currentCastlingRights.bks: castlingRights += "k"
+    if gameState.currentCastlingRights.bqs: castlingRights += "q"
+    fen += castlingRights if castlingRights else "-"
+    if gameState.enpassantPossible:
+        enPassantRow, enPassantCol = gameState.enpassantPossible
+        enPassantSquare = ChessEngine.Move.colsToFiles[enPassantCol] + ChessEngine.Move.rowsToRanks[enPassantRow]
+        fen += " " + enPassantSquare
+    else:
+        fen += " -"
+    fen += " 0"
+    fullmoveNumber = (len(gameState.moveLog) // 2) + 1
+    fen += " " + str(fullmoveNumber)
+
+    return fen
 
 """
 Uses AZ to find best move from FEN string of a gameState.board
@@ -91,7 +125,7 @@ Uses AZ to find best move from FEN string of a gameState.board
 
 def findAlphaZeroMove(gameState, validMoves):
     print("FIND AZ")
-    FEN = getFen(gameState.board)
+    FEN = getFen(gameState)
     moveUCI = AlphaZero.getAzMove(FEN, 9) #modelStrength = (0...9) #a7a5
     moveUCI = moveUCI[:4]
     moveParts = moveUCI.replace(moveUCI[1], f"{moveUCI[1]} ")

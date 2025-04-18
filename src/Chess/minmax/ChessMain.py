@@ -124,10 +124,8 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
             AIMove = ChessAI.findOpeningBookMove(gameState, bOpening, wOpening, validMoves)
             if AIMove is None:
                 if agent:
-                    print("GET AGENT MOVE")
                     AIMove = ChessAI.findAlphaZeroMove(gameState, validMoves)
                     if AIMove is None:
-                        print("NONE")
                         AIMove = ChessAI.findBestMove(gameState, validMoves)
                 else:
                     AIMove = ChessAI.findBestMove(gameState, validMoves)
