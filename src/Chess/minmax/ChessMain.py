@@ -2,7 +2,6 @@
 Handles user input and displays the current game state
 """
 import os.path
-
 import pygame as pg
 import ChessEngine, ChessAI
 import random
@@ -14,11 +13,11 @@ DIMENSION = 8  #chess board is 8x8
 SQ_SIZE = BOARD_HEIGHT // DIMENSION
 MAX_FPS = 15  #possible animations
 IMAGES = {}
+root = os.path.dirname(os.path.dirname(__file__))
 
 """
 Initialising opening books
 """
-root = os.path.dirname(os.path.dirname(__file__))
 
 bCSVpath = os.path.join(root, "data", "BlackGrandmasterOpenings.csv")
 wCSVpath = os.path.join(root, "data", "WhiteGrandmasterOpenings.csv")
@@ -40,7 +39,7 @@ Initialising the global dictionary to hold images, this will benefit performance
 def loadImages():
     pieces = ["rB", "nB", "bB", "qB", "kB", "pB", "pW", "rW", "nW", "bW", "qW", "kW"]
     for piece in pieces:
-        IMAGES[piece] = pg.transform.scale(pg.image.load("images/" + piece + ".png"),(SQ_SIZE, SQ_SIZE))  #IMAGES["pB"] will return the black pawn image
+        IMAGES[piece] = pg.transform.scale(pg.image.load(os.path.join(root, "images", piece + ".png")),(SQ_SIZE, SQ_SIZE))  #IMAGES["pB"] will return the black pawn image
 
 """
 main function for handling user input and updating the graphics
@@ -65,7 +64,7 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
     playerClicks = [] #tracks a pair of player clicks [(6,4), (4,4)]
     gameOver = False
     playerOne = True #if human is playing white, this is true. if ai this is false
-    playerTwo = True #as above but for black
+    playerTwo = False #as above but for black
     agent = False
     while running:
         humanTurn = (gameState.whiteToMove and playerOne) or (not gameState.whiteToMove and playerTwo)
@@ -127,8 +126,10 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
                     AIMove = ChessAI.findAlphaZeroMove(gameState, validMoves)
                     if AIMove is None:
                         AIMove = ChessAI.findBestMove(gameState, validMoves)
+                    agent = not agent
                 else:
                     AIMove = ChessAI.findBestMove(gameState, validMoves)
+                    agent = not agent
                 if AIMove is None:
                     AIMove = ChessAI.findRandomMove(validMoves)
             gameState.makeMove(AIMove)

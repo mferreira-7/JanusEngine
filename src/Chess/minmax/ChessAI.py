@@ -126,7 +126,7 @@ Uses AZ to find best move from FEN string of a gameState.board
 def findAlphaZeroMove(gameState, validMoves):
     print("FIND AZ")
     FEN = getFen(gameState)
-    moveUCI = AlphaZero.getAzMove(FEN, 9) #modelStrength = (0...9) #a7a5
+    moveUCI = AlphaZero.getAzMove(FEN, 0) #modelStrength = (0...9) #a7a5
     moveUCI = moveUCI[:4]
     moveParts = moveUCI.replace(moveUCI[1], f"{moveUCI[1]} ")
     moveParts = moveParts.split(" ")

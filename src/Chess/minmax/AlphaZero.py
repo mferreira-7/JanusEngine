@@ -4,10 +4,12 @@ import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import os.path
 import numpy as np
 import matplotlib.pyplot as plt
-from sympy.physics.quantum.gate import normalized
 from tqdm import trange
+
+root = os.path.dirname(os.path.dirname(__file__))
 
 def get_move_index(move):
     return move.from_square * 64 + move.to_square
@@ -358,12 +360,11 @@ class AlphaZero:
             torch.save(self.model.state_dict(), f"model_{iteration}.pt")
             torch.save(self.optimizer.state_dict(), f"optimizer_{iteration}.pt")
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = ResNet(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
 #chessGame = Chess()
-"""
+'''
 args = {
     "C": 1.5,
     "numSearches": 15, #for me (20-30) optimally (100 -> 200)
@@ -372,12 +373,12 @@ args = {
     "numEpochs": 5, #for me 3 optimally (10 -> 20)
     "batchSize": 8, #for me 16 or 32 optimally 64
     "temperature": 1.5, #exploitation vs exploration
-    "dirichletEpsilon": 0.3,
-    "dirichletAlpha": 0.3
+    "dirichletEpsilon": 0.5,
+    "dirichletAlpha": 0.5
 }
 
 alphaZero = AlphaZero(model, optimizer, chessGame, args)
-alphaZero.learn()
+#alphaZero.learn()
 
 # Test encoding
 chessGame = Chess()
@@ -410,7 +411,7 @@ for iter in range(args["numIterations"]):
     plt.ylabel("Probability")
     plt.title(f"Move Probabilities from MCTS Policy Head: Level {iter}")
     plt.show()
-"""
+'''
 
 def getAzMove(fenString, modelStrength):
     game = Chess()
@@ -418,7 +419,7 @@ def getAzMove(fenString, modelStrength):
     game.board = fenBoard.copy()
     encodedBoard = game.getEncodedBoard()
     tensorBoard = torch.tensor(encodedBoard, device=device).unsqueeze(0)
-    model.load_state_dict(torch.load(f"/Users/marcelferreira/Desktop/LastCapstone/24-25_CE301_ferreira_marcel/src/Chess/minmax/model_{modelStrength}.pt", map_location=device))
+    model.load_state_dict(torch.load(os.path.join(root, "minmax", f"model_{modelStrength}.pt"), map_location=device))
     model.eval()
     pol, _ = model(tensorBoard)
     policyReshaped = pol.detach().cpu().numpy().reshape(64, 64)
@@ -428,6 +429,7 @@ def getAzMove(fenString, modelStrength):
     normalizedMoveProbs = [mp / sum(nonZeroMoveProbs) for mp in nonZeroMoveProbs]
     chosenMove = np.random.choice(validMoves, p=normalizedMoveProbs)
     return chosenMove.uci()
+
 
 '''
 chessGame = Chess()
