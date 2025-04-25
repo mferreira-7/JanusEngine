@@ -64,8 +64,9 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
     playerClicks = [] #tracks a pair of player clicks [(6,4), (4,4)]
     gameOver = False
     playerOne = True #if human is playing white, this is true. if ai this is false
-    playerTwo = False #as above but for black
+    playerTwo = True #as above but for black
     agent = False
+    dualAgents = False
     while running:
         humanTurn = (gameState.whiteToMove and playerOne) or (not gameState.whiteToMove and playerTwo)
         for event in pg.event.get():
@@ -87,7 +88,7 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
                         for i in range(len(validMoves)):
                             if move == validMoves[i]:
                                 gameState.makeMove(validMoves[i])
-                                print(str(move.getChessNotation()))
+                                print("HUMAN MOVE", str(move.getChessNotation()))
                                 moveMade = True
                                 sqSelected = ()  # reset clicks
                                 playerClicks = []
@@ -117,24 +118,30 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
                     print("Black is now a", "human" if playerTwo else "bot")
                 if event.key == pg.K_3:
                     agent = not agent
-                    print("Agent", "activated" if agent else "deactivated")
+                    print("Agent", "activated" if agent else "deactivated", "for", "white" if gameState.whiteToMove else "black")
         #ai move finder
         if not gameOver and not humanTurn:
             AIMove = ChessAI.findOpeningBookMove(gameState, bOpening, wOpening, validMoves)
-            if AIMove is None:
+            if AIMove is None: #TODO: FIX THIS TO ALLOW AZ VS AZ, MM VS MM, HUM VS HUM, AZ VS MM, AZ VS HUM, HUM VS MM
                 if agent:
                     AIMove = ChessAI.findAlphaZeroMove(gameState, validMoves)
+                    print("ALPHAZERO MOVE: ", str(AIMove.getChessNotation()))
                     if AIMove is None:
                         AIMove = ChessAI.findBestMove(gameState, validMoves)
-                    agent = not agent
-                else:
+                        print("MINMAX MOVE: ", str(AIMove.getChessNotation()))
+                    if not dualAgents:
+                        agent = not agent
+                elif not agent and not dualAgents:
                     AIMove = ChessAI.findBestMove(gameState, validMoves)
-                    agent = not agent
+                    print("MINMAX MOVE: ", str(AIMove.getChessNotation()))
+                else: #dual minmax or dual human
+                    AIMove = ChessAI.findBestMove(gameState, validMoves)
+                    print("MINMAX MOVE: ", str(AIMove.getChessNotation()))
                 if AIMove is None:
                     AIMove = ChessAI.findRandomMove(validMoves)
+                    print("RANDOM MOVE: ", str(AIMove.getChessNotation()))
             gameState.makeMove(AIMove)
             moveMade = True
-            print("BOT MOVE: ", str(AIMove.getChessNotation()))
         if moveMade:
             validMoves = gameState.getValidMoves()
             moveMade = False
