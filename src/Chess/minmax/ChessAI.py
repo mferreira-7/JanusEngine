@@ -124,9 +124,8 @@ Uses AZ to find best move from FEN string of a gameState.board
 """
 
 def findAlphaZeroMove(gameState, validMoves):
-    print("FIND AZ")
     FEN = getFen(gameState)
-    moveUCI = AlphaZero.getAzMove(FEN, 9) #modelStrength = (0...9) #a7a5
+    moveUCI = AlphaZero.getAzMove(FEN, 8) #modelStrength = (0...9) #a7a5
     moveUCI = moveUCI[:4]
     moveParts = moveUCI.replace(moveUCI[1], f"{moveUCI[1]} ")
     moveParts = moveParts.split(" ")
@@ -134,10 +133,8 @@ def findAlphaZeroMove(gameState, validMoves):
                    ChessEngine.Move.filesToCols[moveParts[0][0]])  # e7 / 4,1
     endingSqr = (ChessEngine.Move.ranksToRows[moveParts[1][1]],
                  ChessEngine.Move.filesToCols[moveParts[1][0]])  # e5 / 4,3
-    print(f"AZ MOVE PICKED {moveParts[0], moveParts[1]}")
     for move in validMoves:
         if move.__eq__(ChessEngine.Move(startingSqr, endingSqr, gameState.board)):
-            print(f"FOUND AZ MOVE - {move.getChessNotation()}")
             return move
     return None
 """

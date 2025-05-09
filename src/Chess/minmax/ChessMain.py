@@ -66,6 +66,8 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
     playerOne = True #if human is playing white, this is true. if ai this is false
     playerTwo = False #as above but for black
     agent = False
+    azmove = False
+    obmove = True
     while running:
         humanTurn = (gameState.whiteToMove and playerOne) or (not gameState.whiteToMove and playerTwo)
         for event in pg.event.get():
@@ -122,19 +124,19 @@ def main(): #I want to evaluate the minimax models ELO and then use it to test t
         if not gameOver and not humanTurn:
             AIMove = ChessAI.findOpeningBookMove(gameState, bOpening, wOpening, validMoves)
             if AIMove is None:
+                obmove = False
                 if agent:
+                    azmove = True
                     AIMove = ChessAI.findAlphaZeroMove(gameState, validMoves)
                     if AIMove is None:
                         AIMove = ChessAI.findBestMove(gameState, validMoves)
-                    agent = not agent
                 else:
                     AIMove = ChessAI.findBestMove(gameState, validMoves)
-                    agent = not agent
                 if AIMove is None:
                     AIMove = ChessAI.findRandomMove(validMoves)
             gameState.makeMove(AIMove)
             moveMade = True
-            print("BOT MOVE: ", str(AIMove.getChessNotation()))
+            print("OB MOVE:" if obmove else "AZ MOVE:" if azmove else "NM MOVE:", str(AIMove.getChessNotation()))
         if moveMade:
             validMoves = gameState.getValidMoves()
             moveMade = False
